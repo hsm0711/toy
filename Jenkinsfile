@@ -8,7 +8,7 @@ pipeline {
     
     environment {
         APP_NAME = 'webapp'
-        DEPLOY_SERVER = '192.168.1.100'
+        DEPLOY_SERVER = '192.168.1.112'
         DEPLOY_PATH = '/var/www/webapp'
         JAR_NAME = 'webapp-1.0.0.jar'
         GIT_REPO = 'https://github.com/hsm0711/toy.git'
