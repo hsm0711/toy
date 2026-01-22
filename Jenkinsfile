@@ -38,8 +38,7 @@ pipeline {
             }
             post {
                 always {
-                    junit testResults: '**/target/surefire-reports/*.xml',
-                            allowEmptyResults: true
+                    junit testResults: '**/target/surefire-reports/*.xml', allowEmptyResults: true
                 }
             }
         }
@@ -74,7 +73,7 @@ pipeline {
                             fi
                         '
                         
-                        scp target/${JAR_NAME} root@${DEPLOY_SERVER}:${DEPLOY_PATH}/
+                        scp target/${JAR_NAME} root@${DEPLOY_SERVER}:${DEPLOY_PATH}/target
                         
                         if [ -f .env.production ]; then
                             scp .env.production root@${DEPLOY_SERVER}:${DEPLOY_PATH}/.env
