@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Application</title>
+    <title>Playground - Web Application</title>
     <link rel="stylesheet" th:href="@{/css/style.css}">
 </head>
 <body>
     <nav class="navbar">
         <div class="container">
-            <h1 class="logo">Web App</h1>
+            <h1 class="logo">Playground</h1>
             <ul class="nav-menu">
                 <li th:each="menu : ${menus}">
                     <a th:href="@{${menu.path}}" 
@@ -23,30 +23,33 @@
 
     <main class="container">
         <section class="hero">
-            <h2>환영합니다!</h2>
-            <p>PDF 병합 도구를 사용하여 여러 PDF 파일을 하나로 합칠 수 있습니다.</p>
-            <a th:href="@{/pdf-merge}" class="btn btn-primary">PDF 병합하기</a>
+            <h2>Welcome to the Playground!</h2>
+            <p>이곳은 다양한 기능을 자유롭게 사용해볼 수 있는 웹 애플리케이션입니다.<br>아래 메뉴 또는 상단 네비게이션을 통해 원하는 기능을 사용해보세요.</p>
         </section>
 
-        <section class="features">
-            <div class="feature-card">
-                <h3>🔄 PDF 병합</h3>
-                <p>여러 PDF 파일을 하나로 병합</p>
-            </div>
-            <div class="feature-card">
-                <h3>📋 순서 설정</h3>
-                <p>원하는 순서로 PDF 정렬</p>
-            </div>
-            <div class="feature-card">
-                <h3>⚡ 빠른 처리</h3>
-                <p>빠르고 안전한 PDF 처리</p>
+        <section class="features" id="features">
+            <h2>주요 기능</h2>
+            <div class="feature-grid">
+                <!--/* 메뉴가 없는 경우를 대비한 분기 처리 */-->
+                <div th:if="${menus != null and !menus.isEmpty()}" th:each="menu : ${menus}" class="feature-card">
+                    <a th:href="@{${menu.path}}" class="feature-link">
+                        <h3 th:text="${menu.name}"></h3>
+                        <p th:if="${#strings.contains(menu.path, 'pdf-merge')}">여러 PDF 파일을 병합하고 순서를 조정합니다.</p>
+                        <p th:unless="${#strings.contains(menu.path, 'pdf-merge')}">기능을 바로 확인해보세요.</p>
+                        <span class="go-to">바로가기 &rarr;</span>
+                    </a>
+                </div>
+                <div th:unless="${menus != null and !menus.isEmpty()}" class="feature-card">
+                     <h3>기능 없음</h3>
+                     <p>현재 사용 가능한 기능이 없습니다. 관리자에게 문의하세요.</p>
+                </div>
             </div>
         </section>
     </main>
 
     <footer>
         <div class="container">
-            <p>&copy; 2026 Web Application. All rights reserved.</p>
+            <p>&copy; 2024 Playground. All rights reserved.</p>
         </div>
     </footer>
 </body>
