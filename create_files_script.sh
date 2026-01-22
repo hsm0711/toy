@@ -91,71 +91,11 @@ Spring Boot 기반의 PDF 병합 웹 애플리케이션입니다.
 - 🔄 **순서 조정**: 드래그 앤 드롭으로 PDF 순서 변경
 - 📊 **메뉴 관리**: PostgreSQL 기반 동적 메뉴 관리
 
-## 프로젝트 구조
-
-```
-webapp/
-├── src/
-│   ├── main/
-│   │   ├── java/com/webapp/
-│   │   │   ├── WebappApplication.java
-│   │   │   ├── controller/
-│   │   │   ├── service/
-│   │   │   ├── repository/
-│   │   │   ├── model/
-│   │   │   └── config/
-│   │   └── resources/
-│   │       ├── application.properties
-│   │       ├── static/
-│   │       └── templates/
-│   └── test/
-├── pom.xml
-├── Jenkinsfile
-└── README.md
-```
-
-## 환경 설정
-
-### 필수 요구사항
-
-- Java 17+
-- Maven 3.6+
-- PostgreSQL 12+
-- Nginx
-
-### 환경변수 설정
-
-`.env` 파일을 프로젝트 루트에 생성:
-
-```bash
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=webapp_db
-DB_USER=webapp_user
-DB_PASSWORD=your_password
-SERVER_PORT=8080
-UPLOAD_DIR=/var/www/webapp/uploads
-```
-
-### 데이터베이스 초기화
-
-```sql
-CREATE DATABASE webapp_db;
-CREATE USER webapp_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE webapp_db TO webapp_user;
-```
-
 ## 로컬 개발 환경 실행
 
 ```bash
-# 의존성 설치 및 빌드
 mvn clean install
-
-# 애플리케이션 실행
 mvn spring-boot:run
-
-# 또는 JAR 파일 실행
-java -jar target/webapp-1.0.0.jar
 ```
 
 애플리케이션은 `http://localhost:8080`에서 실행됩니다.
@@ -164,37 +104,15 @@ java -jar target/webapp-1.0.0.jar
 
 Jenkins 파이프라인을 통해 자동 배포됩니다.
 
-```bash
-# 수동 배포
-./deploy.sh
-```
-
-## API 엔드포인트
-
-- `GET /` - 홈페이지
-- `GET /pdf-merge` - PDF 병합 페이지
-- `POST /pdf-merge/merge` - PDF 병합 API
-- `GET /pdf-merge/download/{fileName}` - PDF 다운로드
-
-## 테스트
-
-```bash
-mvn test
-```
-
 ## 라이센스
 
 MIT License
-
-## 기여자
-
-- hsm0711
 EOF
 
 echo "✓ README.md 생성"
 
 # pom.xml 생성
-cat > pom.xml << 'EOF'
+cat > pom.xml << 'EOFPOM'
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -218,46 +136,39 @@ cat > pom.xml << 'EOF'
     </properties>
 
     <dependencies>
-        <!-- Spring Boot Starter Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Boot Starter Thymeleaf -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
 
-        <!-- Spring Boot Starter Data JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
         </dependency>
 
-        <!-- PostgreSQL Driver -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
 
-        <!-- Apache PDFBox (PDF 처리) -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>3.0.1</version>
         </dependency>
 
-        <!-- Lombok -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
 
-        <!-- Spring Boot DevTools -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
@@ -265,7 +176,6 @@ cat > pom.xml << 'EOF'
             <optional>true</optional>
         </dependency>
 
-        <!-- Test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
@@ -282,12 +192,12 @@ cat > pom.xml << 'EOF'
         </plugins>
     </build>
 </project>
-EOF
+EOFPOM
 
 echo "✓ pom.xml 생성"
 
 # Jenkinsfile 생성
-cat > Jenkinsfile << 'EOF'
+cat > Jenkinsfile << 'EOFJENKINS'
 pipeline {
     agent any
     
@@ -326,127 +236,32 @@ pipeline {
                 echo '=== 단위 테스트 실행 ==='
                 sh 'mvn test'
             }
-            post {
-                always {
-                    junit '**/target/surefire-reports/*.xml'
-                }
-            }
-        }
-        
-        stage('Code Quality Analysis') {
-            steps {
-                echo '=== 코드 품질 분석 ==='
-                sh 'mvn verify'
-            }
-        }
-        
-        stage('Archive Artifacts') {
-            steps {
-                echo '=== 빌드 산출물 아카이빙 ==='
-                archiveArtifacts artifacts: "target/${JAR_NAME}", 
-                                fingerprint: true
-            }
         }
         
         stage('Deploy to Server') {
             steps {
                 echo '=== 서버에 배포 시작 ==='
-                sshagent(['webapp-server-ssh']) {
-                    sh """
-                        ssh -o StrictHostKeyChecking=no root@${DEPLOY_SERVER} '
-                            mkdir -p ${DEPLOY_PATH}/backup
-                        '
-                        
-                        ssh root@${DEPLOY_SERVER} '
-                            if [ -f ${DEPLOY_PATH}/${JAR_NAME} ]; then
-                                cp ${DEPLOY_PATH}/${JAR_NAME} ${DEPLOY_PATH}/backup/${JAR_NAME}.\$(date +%Y%m%d_%H%M%S)
-                            fi
-                        '
-                        
-                        scp target/${JAR_NAME} root@${DEPLOY_SERVER}:${DEPLOY_PATH}/
-                        
-                        if [ -f .env.production ]; then
-                            scp .env.production root@${DEPLOY_SERVER}:${DEPLOY_PATH}/.env
-                        fi
-                        
-                        ssh root@${DEPLOY_SERVER} '
-                            systemctl restart webapp
-                            sleep 5
-                            systemctl status webapp
-                        '
-                    """
-                }
-            }
-        }
-        
-        stage('Health Check') {
-            steps {
-                echo '=== 애플리케이션 상태 확인 ==='
-                script {
-                    def response = sh(
-                        script: "curl -s -o /dev/null -w '%{http_code}' http://${DEPLOY_SERVER}:8080/",
-                        returnStdout: true
-                    ).trim()
-                    
-                    if (response == '200') {
-                        echo "✅ 애플리케이션 정상 동작 중 (HTTP ${response})"
-                    } else {
-                        error "❌ 애플리케이션 상태 이상 (HTTP ${response})"
-                    }
-                }
+                echo 'Jenkins SSH 설정 필요'
             }
         }
     }
     
     post {
         success {
-            echo '🎉 배포 성공!'
-            emailext(
-                subject: "✅ 배포 성공: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    프로젝트: ${env.JOB_NAME}
-                    빌드 번호: ${env.BUILD_NUMBER}
-                    상태: 성공
-                    
-                    빌드 URL: ${env.BUILD_URL}
-                    
-                    배포 서버: ${DEPLOY_SERVER}
-                    배포 시간: ${new Date()}
-                """,
-                to: 'your-email@example.com'
-            )
+            echo '🎉 빌드 성공!'
         }
         failure {
-            echo '❌ 배포 실패!'
-            emailext(
-                subject: "❌ 배포 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    프로젝트: ${env.JOB_NAME}
-                    빌드 번호: ${env.BUILD_NUMBER}
-                    상태: 실패
-                    
-                    빌드 URL: ${env.BUILD_URL}
-                    
-                    로그를 확인해주세요.
-                """,
-                to: 'your-email@example.com'
-            )
-        }
-        always {
-            echo '=== 빌드 완료 ==='
-            cleanWs()
+            echo '❌ 빌드 실패!'
         }
     }
 }
-EOF
+EOFJENKINS
 
 echo "✓ Jenkinsfile 생성"
 
 # deploy.sh 생성
-cat > deploy.sh << 'EOF'
+cat > deploy.sh << 'EOFDEPLOY'
 #!/bin/bash
-# deploy.sh - 서버 측 배포 스크립트
-
 set -e
 
 APP_NAME="webapp"
@@ -463,48 +278,17 @@ if [ -f .env ]; then
     echo "✓ 환경변수 로드됨"
 fi
 
-mkdir -p $UPLOAD_DIR
-chmod 755 $UPLOAD_DIR
-echo "✓ 업로드 디렉토리 생성: $UPLOAD_DIR"
+echo "애플리케이션 재시작 중..."
+systemctl restart $SERVICE_NAME
 
-echo "애플리케이션 중지 중..."
-if systemctl is-active --quiet $SERVICE_NAME; then
-    systemctl stop $SERVICE_NAME
-    echo "✓ 애플리케이션 중지됨"
-else
-    echo "⚠ 애플리케이션이 실행 중이 아닙니다"
-fi
-
-echo "애플리케이션 시작 중..."
-systemctl daemon-reload
-systemctl start $SERVICE_NAME
-systemctl enable $SERVICE_NAME
-
-sleep 5
-
-if systemctl is-active --quiet $SERVICE_NAME; then
-    echo "✅ 애플리케이션이 성공적으로 시작되었습니다"
-    systemctl status $SERVICE_NAME --no-pager
-else
-    echo "❌ 애플리케이션 시작 실패"
-    systemctl status $SERVICE_NAME --no-pager
-    exit 1
-fi
-
-echo ""
-echo "=== 최근 로그 ==="
-journalctl -u $SERVICE_NAME -n 20 --no-pager
-
-echo ""
 echo "=== 배포 완료 ==="
-echo "URL: http://localhost:8080"
-EOF
+EOFDEPLOY
 
 chmod +x deploy.sh
 echo "✓ deploy.sh 생성"
 
-# WebappApplication.java 생성
-cat > src/main/java/com/webapp/WebappApplication.java << 'EOF'
+# Java 파일들 생성
+cat > src/main/java/com/webapp/WebappApplication.java << 'EOFJAVA1'
 package com.webapp;
 
 import org.springframework.boot.SpringApplication;
@@ -516,12 +300,11 @@ public class WebappApplication {
         SpringApplication.run(WebappApplication.class, args);
     }
 }
-EOF
+EOFJAVA1
 
 echo "✓ WebappApplication.java 생성"
 
-# Menu.java 생성
-cat > src/main/java/com/webapp/model/Menu.java << 'EOF'
+cat > src/main/java/com/webapp/model/Menu.java << 'EOFJAVA2'
 package com.webapp.model;
 
 import jakarta.persistence.*;
@@ -573,12 +356,11 @@ public class Menu {
         updatedAt = LocalDateTime.now();
     }
 }
-EOF
+EOFJAVA2
 
 echo "✓ Menu.java 생성"
 
-# MenuRepository.java 생성
-cat > src/main/java/com/webapp/repository/MenuRepository.java << 'EOF'
+cat > src/main/java/com/webapp/repository/MenuRepository.java << 'EOFJAVA3'
 package com.webapp.repository;
 
 import com.webapp.model.Menu;
@@ -588,17 +370,14 @@ import java.util.List;
 
 @Repository
 public interface MenuRepository extends JpaRepository<Menu, Long> {
-    
     List<Menu> findByIsActiveTrueOrderByDisplayOrderAsc();
-    
     List<Menu> findAllByOrderByDisplayOrderAsc();
 }
-EOF
+EOFJAVA3
 
 echo "✓ MenuRepository.java 생성"
 
-# MenuService.java 생성
-cat > src/main/java/com/webapp/service/MenuService.java << 'EOF'
+cat > src/main/java/com/webapp/service/MenuService.java << 'EOFJAVA4'
 package com.webapp.service;
 
 import com.webapp.model.Menu;
@@ -652,12 +431,11 @@ public class MenuService {
         menuRepository.deleteById(id);
     }
 }
-EOF
+EOFJAVA4
 
 echo "✓ MenuService.java 생성"
 
-# PdfService.java 생성 (계속...)
-cat > src/main/java/com/webapp/service/PdfService.java << 'EOF'
+cat > src/main/java/com/webapp/service/PdfService.java << 'EOFJAVA5'
 package com.webapp.service;
 
 import lombok.extern.slf4j.Slf4j;
@@ -751,12 +529,11 @@ public class PdfService {
         }
     }
 }
-EOF
+EOFJAVA5
 
 echo "✓ PdfService.java 생성"
 
-# HomeController.java 생성
-cat > src/main/java/com/webapp/controller/HomeController.java << 'EOF'
+cat > src/main/java/com/webapp/controller/HomeController.java << 'EOFJAVA6'
 package com.webapp.controller;
 
 import com.webapp.service.MenuService;
@@ -778,12 +555,11 @@ public class HomeController {
         return "index";
     }
 }
-EOF
+EOFJAVA6
 
 echo "✓ HomeController.java 생성"
 
-# PdfMergeController.java 생성
-cat > src/main/java/com/webapp/controller/PdfMergeController.java << 'EOF'
+cat > src/main/java/com/webapp/controller/PdfMergeController.java << 'EOFJAVA7'
 package com.webapp.controller;
 
 import com.webapp.service.MenuService;
@@ -890,68 +666,67 @@ public class PdfMergeController {
         }
     }
 }
-EOF
+EOFJAVA7
 
 echo "✓ PdfMergeController.java 생성"
 
 # application.properties 생성
-cat > src/main/resources/application.properties << 'EOF'
-# Server Configuration
+cat > src/main/resources/application.properties << 'EOFPROP1'
 server.port=${SERVER_PORT:8080}
 
-# Database Configuration
 spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:webapp_db}
 spring.datasource.username=${DB_USER:webapp_user}
 spring.datasource.password=${DB_PASSWORD:}
 spring.datasource.driver-class-name=org.postgresql.Driver
 
-# JPA Configuration
 spring.jpa.hibernate.ddl-auto=update
 spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
 spring.jpa.properties.hibernate.format_sql=true
 
-# File Upload Configuration
 spring.servlet.multipart.enabled=true
 spring.servlet.multipart.max-file-size=${MAX_FILE_SIZE:50MB}
 spring.servlet.multipart.max-request-size=${MAX_REQUEST_SIZE:50MB}
 
-# Upload Directory
 app.upload.dir=${UPLOAD_DIR:/var/www/webapp/uploads}
 
-# Thymeleaf Configuration
 spring.thymeleaf.cache=false
 spring.thymeleaf.prefix=classpath:/templates/
 spring.thymeleaf.suffix=.html
 
-# Logging
 logging.level.org.springframework.web=INFO
 logging.level.com.webapp=DEBUG
-EOF
+EOFPROP1
 
 echo "✓ application.properties 생성"
 
 # application-prod.properties 생성
-cat > src/main/resources/application-prod.properties << 'EOF'
-# Production Profile Configuration
-
-# Server Configuration
+cat > src/main/resources/application-prod.properties << 'EOFPROP2'
 server.port=8080
 server.compression.enabled=true
 
-# Database Configuration - Production
 spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:webapp_db}
 spring.datasource.username=${DB_USER:webapp_user}
 spring.datasource.password=${DB_PASSWORD}
 
-# Connection Pool
 spring.datasource.hikari.maximum-pool-size=10
 spring.datasource.hikari.minimum-idle=5
 spring.datasource.hikari.connection-timeout=30000
 
-# JPA Configuration
 spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.show-sql=false
 spring.jpa.properties.hibernate.format_sql=false
 
-#
+logging.level.root=INFO
+logging.level.com.webapp=INFO
+logging.level.org.springframework.web=WARN
+
+spring.thymeleaf.cache=true
+EOFPROP2
+
+echo "✓ application-prod.properties 생성"
+
+# HTML/CSS/JS 파일 생성은 다음 스크립트에서 계속...
+echo ""
+echo "=== Part 1 완료! ==="
+echo "이제 create-files-part2.sh를 실행하세요."

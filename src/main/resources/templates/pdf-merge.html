@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF 병합 - Web Application</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">Web App</h1>
+            <ul class="nav-menu">
+                <li th:each="menu : ${menus}">
+                    <a th:href="@{${menu.path}}" 
+                       th:text="${menu.name}"
+                       th:classappend="${currentPage == 'pdf-merge'} ? 'active' : ''">
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="pdf-merge-container">
+            <h2>PDF 파일 병합</h2>
+            <p class="description">여러 개의 PDF 파일을 선택하고 순서를 조정한 후 병합하세요.</p>
+
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="fileInput" accept=".pdf" multiple style="display: none;">
+                <div class="upload-prompt">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                        <polyline points="17 8 12 3 7 8"></polyline>
+                        <line x1="12" y1="3" x2="12" y2="15"></line>
+                    </svg>
+                    <p>PDF 파일을 여기에 드래그하거나 클릭하여 선택하세요</p>
+                </div>
+            </div>
+
+            <div id="fileList" class="file-list" style="display: none;">
+                <h3>선택된 파일 <span id="fileCount">0</span>개</h3>
+                <ul id="files"></ul>
+            </div>
+
+            <div class="action-buttons" id="actionButtons" style="display: none;">
+                <button id="mergeBtn" class="btn btn-primary">PDF 병합하기</button>
+                <button id="clearBtn" class="btn btn-secondary">초기화</button>
+            </div>
+
+            <div id="result" class="result" style="display: none;"></div>
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>PDF를 병합하는 중입니다...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Web Application. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script th:src="@{/js/pdf-merge.js}"></script>
+</body>
+</html>
