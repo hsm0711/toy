@@ -91,18 +91,22 @@ pipeline {
         
         stage('Health Check') {
             steps {
-                echo '=== 애플리케이션 상태 확인 ==='
-                script {
-                    def response = sh(
-                        script: "curl -s -o /dev/null -w '%{http_code}' http://${DEPLOY_SERVER}:8080/",
-                        returnStdout: true
-                    ).trim()
-                    
-                    if (response == '200') {
-                        echo "✅ 애플리케이션 정상 동작 중 (HTTP ${response})"
-                    } else {
-                        error "❌ 애플리케이션 상태 이상 (HTTP ${response})"
-                    }
+                echo '=== 애플리케이션 상태 확인 (서버 내부) ==='
+                sshagent(['webapp-server-ssh']) {
+                    sh """
+                        ssh root@${DEPLOY_SERVER} '
+                            for i in {1..10}; do
+                                code=\$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/)
+                                if [ "\$code" = "200" ]; then
+                                    echo "OK (HTTP 200)"
+                                    exit 0
+                                fi
+                                echo "대기중... (HTTP \$code)"
+                                sleep 3
+                            done
+                            exit 1
+                        '
+                    """
                 }
             }
         }
