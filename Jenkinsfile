@@ -73,7 +73,7 @@ pipeline {
                             fi
                         '
                         
-                        scp target/${JAR_NAME} root@${DEPLOY_SERVER}:${DEPLOY_PATH}/target/
+                        scp target/${JAR_NAME} root@${DEPLOY_SERVER}:${DEPLOY_PATH}
                         
                         if [ -f .env.production ]; then
                             scp .env.production root@${DEPLOY_SERVER}:${DEPLOY_PATH}/.env
