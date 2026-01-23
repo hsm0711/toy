@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Source Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #30363d;
+        }
+        
+        .header h1 {
+            color: #58a6ff;
+            margin-bottom: 10px;
+        }
+        
+        .layout {
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            background: #161b22;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            height: fit-content;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .content {
+            background: #161b22;
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid #30363d;
+            min-height: 500px;
+        }
+        
+        .file-tree {
+            list-style: none;
+        }
+        
+        .file-tree li {
+            padding: 5px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin: 2px 0;
+        }
+        
+        .file-tree li:hover {
+            background: #21262d;
+        }
+        
+        .file-tree .dir {
+            color: #58a6ff;
+            font-weight: bold;
+        }
+        
+        .file-tree .file {
+            color: #8b949e;
+            padding-left: 20px;
+        }
+        
+        .file-content {
+            background: #0d1117;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+        }
+        
+        .file-content pre {
+            color: #c9d1d9;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #8b949e;
+        }
+        
+        .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        
+        .btn:hover {
+            background: #2ea043;
+        }
+        
+        .btn-secondary {
+            background: #21262d;
+        }
+        
+        .btn-secondary:hover {
+            background: #30363d;
+        }
+        
+        .path-breadcrumb {
+            color: #58a6ff;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+        
+        .line-numbers {
+            color: #6e7681;
+            user-select: none;
+            padding-right: 10px;
+            border-right: 1px solid #30363d;
+            margin-right: 10px;
+        }
+        
+        .code-line {
+            display: flex;
+        }
+        
+        .info-box {
+            background: #1f6feb;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 GitHub Source Viewer</h1>
+            <p>Repository: <span th:text="${owner + '/' + repo}"></span></p>
+            <div class="info-box">
+                ℹ️ This page requires a valid GitHub token. Token is used only for this session.
+            </div>
+            <div style="margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="viewAsText()">View as Text (for Claude)</button>
+                <button class="btn btn-secondary" onclick="copyUrl()">Copy URL for Claude</button>
+            </div>
+        </div>
+        
+        <div class="layout">
+            <div class="sidebar">
+                <h3 style="margin-bottom: 10px; color: #58a6ff;">📁 File Tree</h3>
+                <div id="fileTree" class="file-tree">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <div class="content">
+                <div id="contentArea">
+                    <p style="color: #8b949e;">Select a file from the tree or click "View as Text" to see all sources.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script th:inline="javascript">
+        const TOKEN = /*[[${token}]]*/ '';
+        let currentPath = '';
+        
+        // 페이지 로드 시 파일 트리 로드
+        window.onload = function() {
+            loadFileTree('');
+        };
+        
+        // 파일 트리 로드
+        async function loadFileTree(path) {
+            try {
+                const response = await fetch(`/github-viewer/api/structure?token=${TOKEN}&path=${path}`);
+                const items = await response.json();
+                
+                const treeDiv = document.getElementById('fileTree');
+                treeDiv.innerHTML = '';
+                
+                const ul = document.createElement('ul');
+                ul.className = 'file-tree';
+                
+                items.forEach(item => {
+                    if (item.name === 'target' || item.name === '.git') return;
+                    
+                    const li = document.createElement('li');
+                    li.className = item.type === 'dir' ? 'dir' : 'file';
+                    li.textContent = (item.type === 'dir' ? '📁 ' : '📄 ') + item.name;
+                    
+                    if (item.type === 'dir') {
+                        li.onclick = () => loadFileTree(item.path);
+                    } else {
+                        li.onclick = () => loadFileContent(item.path);
+                    }
+                    
+                    ul.appendChild(li);
+                });
+                
+                treeDiv.appendChild(ul);
+            } catch (error) {
+                console.error('Failed to load file tree:', error);
+            }
+        }
+        
+        // 파일 내용 로드
+        async function loadFileContent(path) {
+            try {
+                const contentArea = document.getElementById('contentArea');
+                contentArea.innerHTML = '<div class="loading">Loading...</div>';
+                
+                const response = await fetch(`/github-viewer/api/file?token=${TOKEN}&path=${path}`);
+                const data = await response.json();
+                
+                const content = data.decoded_content || 'Binary file';
+                
+                const lines = content.split('\n');
+                let html = '<div class="path-breadcrumb">📄 ' + path + '</div>';
+                html += '<div class="file-content"><pre>';
+                
+                lines.forEach((line, index) => {
+                    html += `<div class="code-line">`;
+                    html += `<span class="line-numbers">${index + 1}</span>`;
+                    html += `<span>${escapeHtml(line)}</span>`;
+                    html += `</div>`;
+                });
+                
+                html += '</pre></div>';
+                contentArea.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load file content:', error);
+                document.getElementById('contentArea').innerHTML = 
+                    '<p style="color: #f85149;">Error loading file: ' + error.message + '</p>';
+            }
+        }
+        
+        // 텍스트 뷰 (Claude용)
+        async function viewAsText() {
+            try {
+                const contentArea = document.getElementById('contentArea');
+                contentArea.innerHTML = '<div class="loading">Generating text view for Claude...</div>';
+                
+                const response = await fetch(`/github-viewer/text-view?token=${TOKEN}`);
+                const text = await response.text();
+                
+                let html = '<div class="file-content"><pre>';
+                html += escapeHtml(text);
+                html += '</pre></div>';
+                
+                contentArea.innerHTML = html;
+            } catch (error) {
+                console.error('Failed to load text view:', error);
+            }
+        }
+        
+        // Claude용 URL 복사
+        function copyUrl() {
+            const url = `${window.location.origin}/github-viewer/text-view?token=${TOKEN}`;
+            
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL copied! Share this with Claude:\n\n' + url);
+            }).catch(err => {
+                prompt('Copy this URL for Claude:', url);
+            });
+        }
+        
+        function escapeHtml(text) {
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>
