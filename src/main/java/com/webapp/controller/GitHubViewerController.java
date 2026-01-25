@@ -177,14 +177,14 @@ public class GitHubViewerController {
             sb.append("\n=== HTML Templates ===\n\n");
             appendHtmlFiles(sb, "src/main/resources/templates", token);
 
-        // CSS 파일들 추가 ⭐
-        sb.append("\n=== CSS Files ===\n\n");
-        appendCssFiles(sb, "src/main/resources/static/css", token);
-        
-        // JavaScript 파일들 추가 ⭐
-        sb.append("\n=== JavaScript Files ===\n\n");
-        appendJsFiles(sb, "src/main/resources/static/js", token);
+            // CSS 파일들 추가 ⭐
+            sb.append("\n=== CSS Files ===\n\n");
+            appendCssFiles(sb, "src/main/resources/static/css", token);
             
+            // JavaScript 파일들 추가 ⭐
+            sb.append("\n=== JavaScript Files ===\n\n");
+            appendJsFiles(sb, "src/main/resources/static/js", token);
+                
             return ResponseEntity.ok()
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(sb.toString());
@@ -350,45 +350,45 @@ public class GitHubViewerController {
         return new String(Base64.getDecoder().decode(content.replaceAll("\\s", "")));
     }
 
-// CSS 파일 추가 메서드 ⭐
-private void appendCssFiles(StringBuilder sb, String path, String token) {
-    List<Map<String, Object>> items = getFileTree(path, token);
-    
-    for (Map<String, Object> item : items) {
-        String name = (String) item.get("name");
-        String type = (String) item.get("type");
-        String itemPath = (String) item.get("path");
+    // CSS 파일 추가 메서드 ⭐
+    private void appendCssFiles(StringBuilder sb, String path, String token) {
+        List<Map<String, Object>> items = getFileTree(path, token);
         
-        if (type.equals("file") && name.endsWith(".css")) {
-            try {
-                sb.append("\n━━━ ").append(itemPath).append(" ━━━\n");
-                String content = getFileContentString(itemPath, token);
-                sb.append(content).append("\n");
-            } catch (Exception e) {
-                sb.append("Error reading file: ").append(e.getMessage()).append("\n");
+        for (Map<String, Object> item : items) {
+            String name = (String) item.get("name");
+            String type = (String) item.get("type");
+            String itemPath = (String) item.get("path");
+            
+            if (type.equals("file") && name.endsWith(".css")) {
+                try {
+                    sb.append("\n━━━ ").append(itemPath).append(" ━━━\n");
+                    String content = getFileContentString(itemPath, token);
+                    sb.append(content).append("\n");
+                } catch (Exception e) {
+                    sb.append("Error reading file: ").append(e.getMessage()).append("\n");
+                }
             }
         }
     }
-}
 
-// JavaScript 파일 추가 메서드 ⭐
-private void appendJsFiles(StringBuilder sb, String path, String token) {
-    List<Map<String, Object>> items = getFileTree(path, token);
-    
-    for (Map<String, Object> item : items) {
-        String name = (String) item.get("name");
-        String type = (String) item.get("type");
-        String itemPath = (String) item.get("path");
+    // JavaScript 파일 추가 메서드 ⭐
+    private void appendJsFiles(StringBuilder sb, String path, String token) {
+        List<Map<String, Object>> items = getFileTree(path, token);
         
-        if (type.equals("file") && name.endsWith(".js")) {
-            try {
-                sb.append("\n━━━ ").append(itemPath).append(" ━━━\n");
-                String content = getFileContentString(itemPath, token);
-                sb.append(content).append("\n");
-            } catch (Exception e) {
-                sb.append("Error reading file: ").append(e.getMessage()).append("\n");
+        for (Map<String, Object> item : items) {
+            String name = (String) item.get("name");
+            String type = (String) item.get("type");
+            String itemPath = (String) item.get("path");
+            
+            if (type.equals("file") && name.endsWith(".js")) {
+                try {
+                    sb.append("\n━━━ ").append(itemPath).append(" ━━━\n");
+                    String content = getFileContentString(itemPath, token);
+                    sb.append(content).append("\n");
+                } catch (Exception e) {
+                    sb.append("Error reading file: ").append(e.getMessage()).append("\n");
+                }
             }
         }
     }
-}
 }
