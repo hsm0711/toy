@@ -108,9 +108,6 @@ public class HealthCheckController {
             boolean isSuccess = false;
             
             try {
-                restTemplate.getRestTemplate().setConnectTimeout(timeout);
-                restTemplate.getRestTemplate().setReadTimeout(timeout);
-                
                 ResponseEntity<String> response = restTemplate.exchange(
                     url,
                     HttpMethod.GET,
