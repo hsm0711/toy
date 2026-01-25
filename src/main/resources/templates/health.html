@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포트/URL 체크 - Playground</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .health-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .health-section {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .input-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+        }
+        .result-box {
+            background: #e9ecef;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            display: none;
+        }
+        .result-box.show {
+            display: block;
+        }
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .result-item:last-child {
+            border-bottom: none;
+        }
+        .result-label {
+            font-weight: 500;
+            color: #495057;
+        }
+        .result-value {
+            color: #212529;
+            font-family: monospace;
+        }
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .status-open, .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-closed, .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+            color: #6c757d;
+        }
+        .loading.show {
+            display: block;
+        }
+        .examples {
+            background: #fff3cd;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .examples h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .example-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: white;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">Playground</h1>
+            <ul class="nav-menu">
+                <li th:each="menu : ${menus}">
+                    <a th:href="@{${menu.path}}" 
+                       th:text="${menu.name}"
+                       th:classappend="${currentPage == 'health-check'} ? 'active' : ''">
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="health-container">
+            <h2>🔌 포트 체크 / URL 헬스체크</h2>
+            <p class="description">TCP 포트 연결 상태와 HTTP URL의 응답 상태를 확인합니다.</p>
+
+            <!-- Port Check -->
+            <div class="health-section">
+                <h3>포트 체크</h3>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label>호스트 (IP 또는 도메인)</label>
+                        <input type="text" id="portHost" placeholder="예: google.com 또는 8.8.8.8">
+                    </div>
+                    <div class="input-group">
+                        <label>포트</label>
+                        <input type="number" id="portNumber" placeholder="80" min="1" max="65535">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>타임아웃 (밀리초)</label>
+                    <input type="number" id="portTimeout" value="5000" min="1000" max="30000">
+                </div>
+                <button class="btn btn-primary" onclick="checkPort()">포트 체크</button>
+                <div class="loading" id="portLoading">⏳ 체크 중...</div>
+                <div id="portResult" class="result-box"></div>
+            </div>
+
+            <!-- URL Health Check -->
+            <div class="health-section">
+                <h3>URL 헬스체크</h3>
+                <div class="input-group">
+                    <label>URL</label>
+                    <input type="text" id="urlInput" placeholder="예: https://google.com">
+                </div>
+                <div class="input-group">
+                    <label>타임아웃 (밀리초)</label>
+                    <input type="number" id="urlTimeout" value="5000" min="1000" max="30000">
+                </div>
+                <button class="btn btn-primary" onclick="checkUrl()">URL 체크</button>
+                <div class="loading" id="urlLoading">⏳ 체크 중...</div>
+                <div id="urlResult" class="result-box"></div>
+            </div>
+
+            <div class="examples">
+                <h4>📌 일반적인 포트</h4>
+                <div class="example-item">HTTP: 80, HTTPS: 443</div>
+                <div class="example-item">SSH: 22, FTP: 21, Telnet: 23</div>
+                <div class="example-item">SMTP: 25, POP3: 110, IMAP: 143</div>
+                <div class="example-item">MySQL: 3306, PostgreSQL: 5432, MongoDB: 27017</div>
+                <div class="example-item">Redis: 6379, RabbitMQ: 5672</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Playground. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        async function checkPort() {
+            const host = document.getElementById('portHost').value;
+            const port = document.getElementById('portNumber').value;
+            const timeout = document.getElementById('portTimeout').value;
+            const resultDiv = document.getElementById('portResult');
+            const loadingDiv = document.getElementById('portLoading');
+            
+            if (!host || !port) {
+                alert('호스트와 포트를 입력하세요.');
+                return;
+            }
+            
+            loadingDiv.classList.add('show');
+            resultDiv.classList.remove('show');
+            
+            try {
+                const response = await fetch('/health-check/api/port-check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `host=${encodeURIComponent(host)}&port=${port}&timeout=${timeout}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const statusClass = data.isOpen ? 'status-open' : 'status-closed';
+                    resultDiv.innerHTML = `
+                        <div class="result-item">
+                            <span class="result-label">호스트:포트</span>
+                            <span class="result-value">${data.host}:${data.port}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">상태</span>
+                            <span class="status-badge ${statusClass}">${data.status}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">응답 시간</span>
+                            <span class="result-value">${data.responseTime} ms</span>
+                        </div>
+                    `;
+                    resultDiv.classList.add('show');
+                } else {
+                    alert('체크 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('포트 체크 오류:', error);
+                alert('체크 중 오류가 발생했습니다.');
+            } finally {
+                loadingDiv.classList.remove('show');
+            }
+        }
+
+        async function checkUrl() {
+            const url = document.getElementById('urlInput').value;
+            const timeout = document.getElementById('urlTimeout').value;
+            const resultDiv = document.getElementById('urlResult');
+            const loadingDiv = document.getElementById('urlLoading');
+            
+            if (!url) {
+                alert('URL을 입력하세요.');
+                return;
+            }
+            
+            loadingDiv.classList.add('show');
+            resultDiv.classList.remove('show');
+            
+            try {
+                const response = await fetch('/health-check/api/url-check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `url=${encodeURIComponent(url)}&timeout=${timeout}`
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    const statusClass = data.isSuccess ? 'status-success' : 'status-error';
+                    resultDiv.innerHTML = `
+                        <div class="result-item">
+                            <span class="result-label">URL</span>
+                            <span class="result-value">${data.url}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">HTTP 상태</span>
+                            <span class="status-badge ${statusClass}">${data.statusCode || 'N/A'}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">상태 텍스트</span>
+                            <span class="result-value">${data.statusText}</span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">응답 시간</span>
+                            <span class="result-value">${data.responseTime} ms</span>
+                        </div>
+                    `;
+                    resultDiv.classList.add('show');
+                } else {
+                    alert('체크 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('URL 체크 오류:', error);
+                alert('체크 중 오류가 발생했습니다.');
+            } finally {
+                loadingDiv.classList.remove('show');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON ↔ YAML 변환기 - Playground</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .converter-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .converter-layout {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        .converter-panel {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .panel-header h3 {
+            margin: 0;
+            color: #495057;
+        }
+        .text-area-group {
+            margin-bottom: 1rem;
+        }
+        .text-area-group textarea {
+            width: 100%;
+            min-height: 400px;
+            padding: 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-family: 'Courier New', monospace;
+            resize: vertical;
+        }
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin: 1rem 0;
+        }
+        .arrow-icon {
+            font-size: 1.5rem;
+            text-align: center;
+            padding: 1rem 0;
+            color: #007bff;
+        }
+        .copy-btn {
+            padding: 0.5rem 1rem;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .copy-btn:hover {
+            background: #218838;
+        }
+        .clear-btn {
+            padding: 0.5rem 1rem;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .clear-btn:hover {
+            background: #5a6268;
+        }
+        .format-btn {
+            padding: 0.5rem 1rem;
+            background: #17a2b8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        .format-btn:hover {
+            background: #138496;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+            display: none;
+        }
+        .error-message.show {
+            display: block;
+        }
+        .examples {
+            background: #e7f3ff;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .examples h4 {
+            margin-top: 0;
+            color: #004085;
+        }
+        .example-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: white;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .example-item:hover {
+            background: #cce5ff;
+        }
+        @media (max-width: 768px) {
+            .converter-layout {
+                grid-template-columns: 1fr;
+            }
+            .arrow-icon {
+                transform: rotate(90deg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">Playground</h1>
+            <ul class="nav-menu">
+                <li th:each="menu : ${menus}">
+                    <a th:href="@{${menu.path}}" 
+                       th:text="${menu.name}"
+                       th:classappend="${currentPage == 'json-yaml'} ? 'active' : ''">
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="converter-container">
+            <h2>🔄 JSON ↔ YAML 변환기</h2>
+            <p class="description">JSON과 YAML 형식을 상호 변환합니다.</p>
+
+            <div class="converter-layout">
+                <!-- JSON Panel -->
+                <div class="converter-panel">
+                    <div class="panel-header">
+                        <h3>JSON</h3>
+                        <div>
+                            <button class="format-btn" onclick="formatJson()">포맷팅</button>
+                            <button class="clear-btn" onclick="clearJson()">Clear</button>
+                        </div>
+                    </div>
+                    <div class="text-area-group">
+                        <textarea id="jsonInput" placeholder='{"key": "value"}'></textarea>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('jsonInput')">📋 복사하기</button>
+                </div>
+
+                <!-- YAML Panel -->
+                <div class="converter-panel">
+                    <div class="panel-header">
+                        <h3>YAML</h3>
+                        <button class="clear-btn" onclick="clearYaml()">Clear</button>
+                    </div>
+                    <div class="text-area-group">
+                        <textarea id="yamlInput" placeholder="key: value"></textarea>
+                    </div>
+                    <button class="copy-btn" onclick="copyToClipboard('yamlInput')">📋 복사하기</button>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="jsonToYaml()">JSON → YAML</button>
+                <button class="btn btn-primary" onclick="yamlToJson()">YAML → JSON</button>
+            </div>
+
+            <div id="errorMessage" class="error-message"></div>
+
+            <div class="examples">
+                <h4>📌 예제 (클릭하여 입력)</h4>
+                <div class="example-item" onclick="fillJsonExample1()">
+                    간단한 JSON 객체
+                </div>
+                <div class="example-item" onclick="fillJsonExample2()">
+                    배열을 포함한 JSON
+                </div>
+                <div class="example-item" onclick="fillYamlExample()">
+                    YAML 설정 파일 예제
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Playground. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        async function jsonToYaml() {
+            const json = document.getElementById('jsonInput').value;
+            const errorDiv = document.getElementById('errorMessage');
+            
+            if (!json) {
+                showError('JSON 데이터를 입력하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/json-yaml/api/json-to-yaml', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ input: json })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('yamlInput').value = data.result;
+                    hideError();
+                } else {
+                    showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
+                }
+            } catch (error) {
+                console.error('변환 오류:', error);
+                showError('변환 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function yamlToJson() {
+            const yaml = document.getElementById('yamlInput').value;
+            
+            if (!yaml) {
+                showError('YAML 데이터를 입력하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/json-yaml/api/yaml-to-json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ input: yaml })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('jsonInput').value = data.result;
+                    hideError();
+                } else {
+                    showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
+                }
+            } catch (error) {
+                console.error('변환 오류:', error);
+                showError('변환 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function formatJson() {
+            const json = document.getElementById('jsonInput').value;
+            
+            if (!json) {
+                showError('JSON 데이터를 입력하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/json-yaml/api/format-json', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ input: json })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('jsonInput').value = data.result;
+                    hideError();
+                } else {
+                    showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
+                }
+            } catch (error) {
+                console.error('포맷팅 오류:', error);
+                showError('포맷팅 중 오류가 발생했습니다.');
+            }
+        }
+
+        function clearJson() {
+            document.getElementById('jsonInput').value = '';
+            hideError();
+        }
+
+        function clearYaml() {
+            document.getElementById('yamlInput').value = '';
+            hideError();
+        }
+
+        function copyToClipboard(elementId) {
+            const textarea = document.getElementById(elementId);
+            textarea.select();
+            document.execCommand('copy');
+            alert('복사되었습니다!');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.classList.remove('show');
+        }
+
+        function fillJsonExample1() {
+            document.getElementById('jsonInput').value = `{
+  "name": "John Doe",
+  "age": 30,
+  "email": "john@example.com",
+  "active": true
+}`;
+            hideError();
+        }
+
+        function fillJsonExample2() {
+            document.getElementById('jsonInput').value = `{
+  "users": [
+    {
+      "id": 1,
+      "name": "Alice"
+    },
+    {
+      "id": 2,
+      "name": "Bob"
+    }
+  ],
+  "total": 2
+}`;
+            hideError();
+        }
+
+        function fillYamlExample() {
+            document.getElementById('yamlInput').value = `server:
+  port: 8080
+  address: localhost
+
+database:
+  host: localhost
+  port: 5432
+  name: mydb
+  credentials:
+    username: admin
+    password: secret
+
+features:
+  - authentication
+  - logging
+  - monitoring`;
+            hideError();
+        }
+    </script>
+</body>
+</html>

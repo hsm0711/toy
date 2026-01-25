@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>정규식 테스터 - Playground</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .regex-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .regex-section {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: monospace;
+        }
+        .input-group textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .checkbox-group {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: auto;
+        }
+        .result-summary {
+            background: #d1ecf1;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+        .match-count {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #0c5460;
+        }
+        .matches-list {
+            background: #e9ecef;
+            padding: 1rem;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .match-item {
+            background: white;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+        }
+        .match-header {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        .match-value {
+            font-family: monospace;
+            background: #f8f9fa;
+            padding: 0.5rem;
+            border-radius: 3px;
+            margin: 0.5rem 0;
+        }
+        .match-highlight {
+            background: #ffeb3b;
+            font-weight: bold;
+        }
+        .preview-text {
+            font-family: monospace;
+            white-space: pre-wrap;
+            line-height: 1.8;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .examples {
+            background: #fff3cd;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .examples h4 {
+            margin-top: 0;
+            color: #856404;
+        }
+        .example-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: white;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">Playground</h1>
+            <ul class="nav-menu">
+                <li th:each="menu : ${menus}">
+                    <a th:href="@{${menu.path}}" 
+                       th:text="${menu.name}"
+                       th:classappend="${currentPage == 'regex-tester'} ? 'active' : ''">
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="regex-container">
+            <h2>🔍 정규식 테스터</h2>
+            <p class="description">정규식 패턴을 테스트하고 매칭 결과를 확인합니다.</p>
+
+            <div class="regex-section">
+                <div class="input-group">
+                    <label>정규식 패턴</label>
+                    <input type="text" id="regexInput" placeholder="예: \d{3}-\d{4}-\d{4}">
+                </div>
+                
+                <div class="checkbox-group">
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="flagI">
+                        <label for="flagI" style="margin-bottom: 0;">대소문자 무시 (i)</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="flagM">
+                        <label for="flagM" style="margin-bottom: 0;">멀티라인 (m)</label>
+                    </div>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="flagS">
+                        <label for="flagS" style="margin-bottom: 0;">Dotall (s)</label>
+                    </div>
+                </div>
+
+                <div class="input-group">
+                    <label>테스트 문자열</label>
+                    <textarea id="testStringInput" placeholder="매칭 테스트할 문자열을 입력하세요"></textarea>
+                </div>
+
+                <button class="btn btn-primary" onclick="testRegex()">테스트 실행</button>
+
+                <div id="resultArea" style="display: none; margin-top: 1rem;">
+                    <div class="result-summary">
+                        <div class="match-count" id="matchSummary"></div>
+                    </div>
+                    
+                    <div id="matchesList" class="matches-list"></div>
+                    
+                    <div class="preview-text" id="highlightPreview"></div>
+                </div>
+            </div>
+
+            <div class="examples">
+                <h4>📌 정규식 예제</h4>
+                <div class="example-item">이메일: [a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}</div>
+                <div class="example-item">전화번호: \d{3}-\d{4}-\d{4}</div>
+                <div class="example-item">URL: https?://[^\s]+</div>
+                <div class="example-item">IP 주소: \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}</div>
+                <div class="example-item">날짜 (YYYY-MM-DD): \d{4}-\d{2}-\d{2}</div>
+                <div class="example-item">16진수 컬러: #[0-9a-fA-F]{6}</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Playground. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        async function testRegex() {
+            const regex = document.getElementById('regexInput').value;
+            const testString = document.getElementById('testStringInput').value;
+            const flagI = document.getElementById('flagI').checked;
+            const flagM = document.getElementById('flagM').checked;
+            const flagS = document.getElementById('flagS').checked;
+            
+            if (!regex) {
+                alert('정규식을 입력하세요.');
+                return;
+            }
+            
+            let flags = '';
+            if (flagI) flags += 'i';
+            if (flagM) flags += 'm';
+            if (flagS) flags += 's';
+            
+            try {
+                const response = await fetch('/regex-tester/api/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        regex: regex,
+                        testString: testString,
+                        flags: flags
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayResults(data, testString);
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('테스트 오류:', error);
+                alert('테스트 중 오류가 발생했습니다.');
+            }
+        }
+
+        function displayResults(data, originalText) {
+            const resultArea = document.getElementById('resultArea');
+            const matchSummary = document.getElementById('matchSummary');
+            const matchesList = document.getElementById('matchesList');
+            const highlightPreview = document.getElementById('highlightPreview');
+            
+            if (data.matched) {
+                matchSummary.textContent = `✅ ${data.matchCount}개의 매칭 발견`;
+                matchSummary.style.color = '#155724';
+            } else {
+                matchSummary.textContent = '❌ 매칭 없음';
+                matchSummary.style.color = '#721c24';
+            }
+            
+            // 매칭 목록 표시
+            let matchesHtml = '';
+            if (data.matches && data.matches.length > 0) {
+                data.matches.forEach(match => {
+                    matchesHtml += `
+                        <div class="match-item">
+                            <div class="match-header">매칭 #${match.index}</div>
+                            <div class="match-value">${escapeHtml(match.value)}</div>
+                            <div style="font-size: 0.9rem; color: #6c757d;">
+                                위치: ${match.start} ~ ${match.end}
+                            </div>
+                            ${match.groups && match.groups.length > 0 ? 
+                                `<div style="margin-top: 0.5rem;">
+                                    <strong>그룹:</strong> ${match.groups.map((g, i) => `그룹${i+1}: ${escapeHtml(g || 'null')}`).join(', ')}
+                                </div>` : ''}
+                        </div>
+                    `;
+                });
+            } else {
+                matchesHtml = '<div style="text-align: center; padding: 2rem; color: #6c757d;">매칭된 결과가 없습니다.</div>';
+            }
+            matchesList.innerHTML = matchesHtml;
+            
+            // 하이라이트 프리뷰
+            let highlightedText = originalText;
+            if (data.matches && data.matches.length > 0) {
+                const sortedMatches = [...data.matches].sort((a, b) => b.start - a.start);
+                sortedMatches.forEach(match => {
+                    const before = highlightedText.substring(0, match.start);
+                    const highlighted = highlightedText.substring(match.start, match.end);
+                    const after = highlightedText.substring(match.end);
+                    highlightedText = before + '<span class="match-highlight">' + escapeHtml(highlighted) + '</span>' + after;
+                });
+            }
+            highlightPreview.innerHTML = highlightedText || '<em>텍스트 없음</em>';
+            
+            resultArea.style.display = 'block';
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const map = {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+    </script>
+</body>
+</html>

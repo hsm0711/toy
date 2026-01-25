@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cron 표현식 도구 - Playground</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+    <style>
+        .cron-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .cron-section {
+            background: white;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-radius: 6px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .input-group {
+            margin-bottom: 1rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #495057;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        .result-box {
+            background: #e9ecef;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .result-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        .result-value {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 4px;
+            font-family: monospace;
+            margin-bottom: 0.5rem;
+        }
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1rem;
+        }
+        .helper-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+        .examples {
+            background: #d1ecf1;
+            padding: 1rem;
+            border-radius: 4px;
+            margin-top: 1rem;
+        }
+        .examples h4 {
+            margin-top: 0;
+            color: #0c5460;
+        }
+        .example-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: white;
+            border-radius: 3px;
+        }
+        .example-expr {
+            font-family: monospace;
+            color: #007bff;
+        }
+        .example-desc {
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <h1 class="logo">Playground</h1>
+            <ul class="nav-menu">
+                <li th:each="menu : ${menus}">
+                    <a th:href="@{${menu.path}}" 
+                       th:text="${menu.name}"
+                       th:classappend="${currentPage == 'cron-expression'} ? 'active' : ''">
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="cron-container">
+            <h2>⏱️ Cron 표현식 도구</h2>
+            <p class="description">Cron 표현식을 분석하거나 생성합니다.</p>
+
+            <!-- Cron Expression Parser -->
+            <div class="cron-section">
+                <h3>Cron 표현식 → 설명</h3>
+                <div class="input-group">
+                    <label>Cron 표현식 입력</label>
+                    <input type="text" id="cronInput" placeholder="예: 0 0 12 * * ?">
+                    <div class="helper-text">Spring Cron (6필드) 또는 Unix Cron (5필드) 지원</div>
+                </div>
+                <button class="btn btn-primary" onclick="describeCron()">분석하기</button>
+                <div id="describeResult" style="display: none;">
+                    <div class="result-box">
+                        <div class="result-label">표현식</div>
+                        <div class="result-value" id="resultExpression"></div>
+                        <div class="result-label">타입</div>
+                        <div class="result-value" id="resultType"></div>
+                        <div class="result-label">설명</div>
+                        <div class="result-value" id="resultDescription"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cron Expression Generator -->
+            <div class="cron-section">
+                <h3>Cron 표현식 생성기</h3>
+                <div class="input-group">
+                    <label>타입 선택</label>
+                    <select id="cronType" onchange="toggleSecondField()">
+                        <option value="spring">Spring Cron (6 필드)</option>
+                        <option value="unix">Unix Cron (5 필드)</option>
+                    </select>
+                </div>
+                
+                <div class="grid-3">
+                    <div class="input-group" id="secondField">
+                        <label>초 (0-59)</label>
+                        <input type="text" id="second" placeholder="* or 0">
+                    </div>
+                    <div class="input-group">
+                        <label>분 (0-59)</label>
+                        <input type="text" id="minute" placeholder="* or 0">
+                    </div>
+                    <div class="input-group">
+                        <label>시 (0-23)</label>
+                        <input type="text" id="hour" placeholder="* or 0">
+                    </div>
+                </div>
+                
+                <div class="grid-3">
+                    <div class="input-group">
+                        <label>일 (1-31)</label>
+                        <input type="text" id="day" placeholder="* or 1">
+                    </div>
+                    <div class="input-group">
+                        <label>월 (1-12)</label>
+                        <input type="text" id="month" placeholder="* or 1">
+                    </div>
+                    <div class="input-group">
+                        <label>요일 (0-7)</label>
+                        <input type="text" id="weekday" placeholder="* or ? or 0">
+                        <div class="helper-text">0,7=일요일, 1=월요일</div>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" onclick="generateCron()">생성하기</button>
+                <div id="generateResult" style="display: none;">
+                    <div class="result-box">
+                        <div class="result-label">생성된 Cron 표현식</div>
+                        <div class="result-value" id="generatedExpression"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Examples -->
+            <div class="examples">
+                <h4>📌 Cron 표현식 예제</h4>
+                <div class="example-item">
+                    <span class="example-expr">0 0 12 * * ?</span>
+                    <span class="example-desc">매일 정오 12시</span>
+                </div>
+                <div class="example-item">
+                    <span class="example-expr">0 */15 * * * ?</span>
+                    <span class="example-desc">15분마다</span>
+                </div>
+                <div class="example-item">
+                    <span class="example-expr">0 0 9-18 * * MON-FRI</span>
+                    <span class="example-desc">평일 9시~18시 매 시간</span>
+                </div>
+                <div class="example-item">
+                    <span class="example-expr">0 0 0 1 * ?</span>
+                    <span class="example-desc">매월 1일 자정</span>
+                </div>
+                <div class="example-item">
+                    <span class="example-expr">0 0 2 * * SUN</span>
+                    <span class="example-desc">매주 일요일 새벽 2시</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 Playground. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function toggleSecondField() {
+            const cronType = document.getElementById('cronType').value;
+            const secondField = document.getElementById('secondField');
+            secondField.style.display = cronType === 'spring' ? 'block' : 'none';
+        }
+
+        async function describeCron() {
+            const expression = document.getElementById('cronInput').value;
+            
+            if (!expression) {
+                alert('Cron 표현식을 입력하세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/cron-expression/api/describe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ expression: expression })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('resultExpression').textContent = data.expression;
+                    document.getElementById('resultType').textContent = data.type;
+                    document.getElementById('resultDescription').textContent = data.description;
+                    document.getElementById('describeResult').style.display = 'block';
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('분석 오류:', error);
+                alert('분석 중 오류가 발생했습니다.');
+            }
+        }
+
+        async function generateCron() {
+            const type = document.getElementById('cronType').value;
+            const second = document.getElementById('second').value;
+            const minute = document.getElementById('minute').value;
+            const hour = document.getElementById('hour').value;
+            const day = document.getElementById('day').value;
+            const month = document.getElementById('month').value;
+            const weekday = document.getElementById('weekday').value;
+            
+            try {
+                const params = new URLSearchParams({
+                    type: type,
+                    second: second || '',
+                    minute: minute || '',
+                    hour: hour || '',
+                    day: day || '',
+                    month: month || '',
+                    weekday: weekday || ''
+                });
+                
+                const response = await fetch(`/cron-expression/api/generate?${params}`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('generatedExpression').textContent = data.expression;
+                    document.getElementById('generateResult').style.display = 'block';
+                } else {
+                    alert(data.message);
+                }
+            } catch (error) {
+                console.error('생성 오류:', error);
+                alert('생성 중 오류가 발생했습니다.');
+            }
+        }
+    </script>
+</body>
+</html>

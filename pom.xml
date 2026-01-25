@@ -48,6 +48,12 @@
             <version>3.0.1</version>
         </dependency>
 
+        <!-- YAML 지원을 위한 Jackson YAML -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-yaml</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
