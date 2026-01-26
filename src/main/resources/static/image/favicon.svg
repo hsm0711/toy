@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" shape-rendering="crispEdges">
+    <!-- Cloud Shadow (1px Depth) -->
+    <path d="M25 21 H41 V23 H45 V25 H49 V29 H53 V41 H49 V45 H41 V47 H25 V45 H17 V41 H13 V29 H17 V25 H21 V23 H25 Z" fill="#0056b3"/>
+
+    <!-- Pixel Cloud Shape -->
+    <path d="M24 20 H40 V22 H44 V24 H48 V28 H52 V40 H48 V44 H40 V46 H24 V44 H16 V40 H12 V28 H16 V24 H20 V22 H24 Z" fill="#007bff"/>
+    
+    <!-- Pixel Prompt (>) -->
+    <path d="M22 28 H26 V30 H28 V32 H30 V34 H28 V36 H26 V38 H22 V34 H24 V32 H22 Z" fill="#ffffff"/>
+    
+    <!-- Pixel Cursor (_) -->
+    <rect x="34" y="34" width="8" height="4" fill="#ffffff"/>
+</svg>
