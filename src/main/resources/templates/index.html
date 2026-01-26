@@ -182,7 +182,39 @@
     <!-- 메인 컨텐츠 영역 -->
     <main class="container">
         <div layout:fragment="content">
-            <!-- 페이지별 컨텐츠가 여기에 삽입됩니다 -->
+            <section class="hero">
+                <h2>Welcome to the Playground!</h2>
+                <p>이곳은 다양한 기능을 자유롭게 사용해볼 수 있는 웹 애플리케이션입니다.<br>
+                아래 메뉴 또는 상단 네비게이션을 통해 원하는 기능을 사용해보세요.</p>
+            </section>
+
+            <div class="features-header">
+                <h2>주요 기능</h2>
+            </div>
+            
+            <section class="features">
+                <!-- 메뉴가 있는 경우 -->
+                <div th:if="${menus != null and !menus.isEmpty()}" 
+                    th:each="menu : ${menus}" 
+                    class="feature-card">
+                    <a th:href="@{${menu.path}}" class="feature-link">
+                        <h3 th:text="${menu.name}">기능명</h3>
+                        <p th:if="${#strings.contains(menu.path, 'pdf-merge')}">
+                            여러 PDF 파일을 병합하고 순서를 조정합니다.
+                        </p>
+                        <p th:unless="${#strings.contains(menu.path, 'pdf-merge')}">
+                            기능을 바로 확인해보세요.
+                        </p>
+                        <span class="go-to">바로가기 &rarr;</span>
+                    </a>
+                </div>
+                
+                <!-- 메뉴가 없는 경우 -->
+                <div th:unless="${menus != null and !menus.isEmpty()}" class="feature-card">
+                    <h3>기능 없음</h3>
+                    <p>현재 사용 가능한 기능이 없습니다. 관리자에게 문의하세요.</p>
+                </div>
+            </section>
         </div>
     </main>
 
