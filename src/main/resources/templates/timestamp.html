@@ -1,108 +1,20 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Timestamp 변환기 - Playground</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <style>
-        .timestamp-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        .converter-section {
-            background: white;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .input-group {
-            margin-bottom: 1rem;
-        }
-        .input-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #495057;
-        }
-        .input-group input, .input-group select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 1rem;
-        }
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        .checkbox-group input[type="checkbox"] {
-            width: auto;
-        }
-        .result-box {
-            background: #e9ecef;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-top: 1rem;
-            display: none;
-        }
-        .result-box.show {
-            display: block;
-        }
-        .result-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 0;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .result-item:last-child {
-            border-bottom: none;
-        }
-        .result-label {
-            font-weight: 500;
-            color: #495057;
-        }
-        .result-value {
-            color: #212529;
-            font-family: monospace;
-        }
-        .current-time-box {
-            background: #d1ecf1;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-bottom: 1rem;
-            text-align: center;
-        }
-        .btn-row {
-            display: flex;
-            gap: 0.5rem;
-        }
-    </style>
+    <title>Timestamp 변환</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+    </th:block>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <h1 class="logo">Playground</h1>
-            <ul class="nav-menu">
-                <li th:each="menu : ${menus}">
-                    <a th:href="@{${menu.path}}" 
-                       th:text="${menu.name}"
-                       th:classappend="${currentPage == 'timestamp'} ? 'active' : ''">
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
-    <main class="container">
-        <div class="timestamp-container">
-            <h2>⏰ Timestamp 변환기</h2>
-            <p class="description">Unix Timestamp와 날짜/시간을 상호 변환합니다.</p>
+    <div layout:fragment="content">
+        <div class="tool-container">
+            <div class="page-header">
+                <h2>🕐 Timestamp 변환기</h2>
+                <p class="description">Unix Timestamp와 날짜/시간을 상호 변환합니다.</p>
+            </div>
 
             <div class="current-time-box">
                 <h3>현재 시간</h3>
@@ -111,13 +23,13 @@
             </div>
 
             <!-- Timestamp to DateTime -->
-            <div class="converter-section">
+            <div class="tool-section">
                 <h3>Timestamp → 날짜/시간</h3>
                 <div class="input-group">
                     <label>Timestamp 입력</label>
                     <input type="number" id="timestampInput" placeholder="예: 1234567890">
                 </div>
-                <div class="input-group checkbox-group">
+                <div class="checkbox-group">
                     <input type="checkbox" id="isMillis">
                     <label for="isMillis" style="margin-bottom: 0;">밀리초 단위</label>
                 </div>
@@ -137,7 +49,7 @@
             </div>
 
             <!-- DateTime to Timestamp -->
-            <div class="converter-section">
+            <div class="tool-section">
                 <h3>날짜/시간 → Timestamp</h3>
                 <div class="input-group">
                     <label>날짜/시간 입력</label>
@@ -161,149 +73,133 @@
                 <div id="result2" class="result-box"></div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2024 Playground. All rights reserved.</p>
-        </div>
-    </footer>
+    <th:block layout:fragment="extra-js">
+        <script>
+            window.onload = function() { refreshCurrentTime(); };
 
-    <script>
-        // 페이지 로드 시 현재 시간 표시
-        window.onload = function() {
-            refreshCurrentTime();
-        };
-
-        async function refreshCurrentTime() {
-            try {
-                const timezone = 'Asia/Seoul';
-                const response = await fetch(`/timestamp/api/current?timezone=${timezone}`);
-                const data = await response.json();
-                
-                if (data.success) {
-                    document.getElementById('currentTimeDisplay').innerHTML = `
-                        <strong>${data.readable}</strong><br>
-                        <small>Timestamp (초): ${data.timestampSeconds}</small><br>
-                        <small>Timestamp (밀리초): ${data.timestampMillis}</small>
-                    `;
+            async function refreshCurrentTime() {
+                try {
+                    const response = await fetch('/timestamp/api/current?timezone=Asia/Seoul');
+                    const data = await response.json();
+                    if (data.success) {
+                        document.getElementById('currentTimeDisplay').innerHTML = `
+                            <strong>${data.readable}</strong><br>
+                            <small>Timestamp (초): ${data.timestampSeconds}</small><br>
+                            <small>Timestamp (밀리초): ${data.timestampMillis}</small>
+                        `;
+                    }
+                } catch (error) {
+                    console.error('현재 시간 조회 실패:', error);
                 }
-            } catch (error) {
-                console.error('현재 시간 조회 실패:', error);
             }
-        }
 
-        async function convertFromTimestamp() {
-            const timestamp = document.getElementById('timestampInput').value;
-            const timezone = document.getElementById('timezone1').value;
-            const isMillis = document.getElementById('isMillis').checked;
-            const resultDiv = document.getElementById('result1');
-            
-            if (!timestamp) {
-                alert('Timestamp를 입력하세요.');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/timestamp/api/convert', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `timestamp=${timestamp}&timezone=${timezone}&isMillis=${isMillis}`
-                });
+            async function convertFromTimestamp() {
+                const timestamp = document.getElementById('timestampInput').value;
+                const timezone = document.getElementById('timezone1').value;
+                const isMillis = document.getElementById('isMillis').checked;
+                const resultDiv = document.getElementById('result1');
                 
-                const data = await response.json();
-                
-                if (data.success) {
-                    resultDiv.innerHTML = `
-                        <div class="result-item">
-                            <span class="result-label">날짜/시간:</span>
-                            <span class="result-value">${data.dateTime}</span>
-                        </div>
-                        <div class="result-item">
-                            <span class="result-label">ISO 8601:</span>
-                            <span class="result-value">${data.iso8601}</span>
-                        </div>
-                        <div class="result-item">
-                            <span class="result-label">읽기 쉬운 형식:</span>
-                            <span class="result-value">${data.readable}</span>
-                        </div>
-                        <div class="result-item">
-                            <span class="result-label">Timestamp (초):</span>
-                            <span class="result-value">${data.timestampSeconds}</span>
-                        </div>
-                        <div class="result-item">
-                            <span class="result-label">Timestamp (밀리초):</span>
-                            <span class="result-value">${data.timestampMillis}</span>
-                        </div>
-                    `;
-                    resultDiv.classList.add('show');
-                } else {
-                    alert('변환 실패: ' + data.message);
+                if (!timestamp) {
+                    alert('Timestamp를 입력하세요.');
+                    return;
                 }
-            } catch (error) {
-                console.error('변환 오류:', error);
-                alert('변환 중 오류가 발생했습니다.');
-            }
-        }
-
-        async function convertFromDateTime() {
-            const dateTime = document.getElementById('datetimeInput').value;
-            const timezone = document.getElementById('timezone2').value;
-            const resultDiv = document.getElementById('result2');
-            
-            if (!dateTime) {
-                alert('날짜/시간을 입력하세요.');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/timestamp/api/convert', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
-                    body: `dateTime=${dateTime}&timezone=${timezone}`
-                });
                 
-                const data = await response.json();
-                
-                if (data.success) {
-                    resultDiv.innerHTML = `
-                        <div class="result-item">
-                            <span class="result-label">Timestamp (초):</span>
-                            <span class="result-value">${data.timestampSeconds}</span>
-                        </div>
-                        <div class="result-item">
-                            <span class="result-label">Timestamp (밀리초):</span>
-                            <span class="result-value">${data.timestampMillis}</span>
-                        </div>
-                        <div class="result-item">
-                            <span class="result-label">ISO 8601:</span>
-                            <span class="result-value">${data.iso8601}</span>
-                        </div>
-                    `;
-                    resultDiv.classList.add('show');
-                } else {
-                    alert('변환 실패: ' + data.message);
+                try {
+                    const response = await fetch('/timestamp/api/convert', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `timestamp=${timestamp}&timezone=${timezone}&isMillis=${isMillis}`
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        resultDiv.innerHTML = `
+                            <div class="result-item">
+                                <span class="result-label">날짜/시간:</span>
+                                <span class="result-value">${data.dateTime}</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">ISO 8601:</span>
+                                <span class="result-value">${data.iso8601}</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">읽기 쉬운 형식:</span>
+                                <span class="result-value">${data.readable}</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Timestamp (초):</span>
+                                <span class="result-value">${data.timestampSeconds}</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Timestamp (밀리초):</span>
+                                <span class="result-value">${data.timestampMillis}</span>
+                            </div>
+                        `;
+                        resultDiv.classList.add('show');
+                    } else {
+                        alert('변환 실패: ' + data.message);
+                    }
+                } catch (error) {
+                    console.error('변환 오류:', error);
+                    alert('변환 중 오류가 발생했습니다.');
                 }
-            } catch (error) {
-                console.error('변환 오류:', error);
-                alert('변환 중 오류가 발생했습니다.');
             }
-        }
 
-        function setNow() {
-            const now = new Date();
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            
-            document.getElementById('datetimeInput').value = `${year}-${month}-${day}T${hours}:${minutes}`;
-        }
-    </script>
+            async function convertFromDateTime() {
+                const dateTime = document.getElementById('datetimeInput').value;
+                const timezone = document.getElementById('timezone2').value;
+                const resultDiv = document.getElementById('result2');
+                
+                if (!dateTime) {
+                    alert('날짜/시간을 입력하세요.');
+                    return;
+                }
+                
+                try {
+                    const response = await fetch('/timestamp/api/convert', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: `dateTime=${dateTime}&timezone=${timezone}`
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        resultDiv.innerHTML = `
+                            <div class="result-item">
+                                <span class="result-label">Timestamp (초):</span>
+                                <span class="result-value">${data.timestampSeconds}</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">Timestamp (밀리초):</span>
+                                <span class="result-value">${data.timestampMillis}</span>
+                            </div>
+                            <div class="result-item">
+                                <span class="result-label">ISO 8601:</span>
+                                <span class="result-value">${data.iso8601}</span>
+                            </div>
+                        `;
+                        resultDiv.classList.add('show');
+                    } else {
+                        alert('변환 실패: ' + data.message);
+                    }
+                } catch (error) {
+                    console.error('변환 오류:', error);
+                    alert('변환 중 오류가 발생했습니다.');
+                }
+            }
+
+            function setNow() {
+                const now = new Date();
+                const year = now.getFullYear();
+                const month = String(now.getMonth() + 1).padStart(2, '0');
+                const day = String(now.getDate()).padStart(2, '0');
+                const hours = String(now.getHours()).padStart(2, '0');
+                const minutes = String(now.getMinutes()).padStart(2, '0');
+                document.getElementById('datetimeInput').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            }
+        </script>
+    </th:block>
 </body>
 </html>

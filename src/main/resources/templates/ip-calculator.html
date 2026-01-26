@@ -1,134 +1,34 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IP 계산기 - Playground</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <style>
-        .ip-container {
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        .ip-section {
-            background: white;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .input-group {
-            margin-bottom: 1rem;
-        }
-        .input-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #495057;
-        }
-        .input-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-family: monospace;
-        }
-        .result-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-        .result-item {
-            background: #e9ecef;
-            padding: 1rem;
-            border-radius: 4px;
-        }
-        .result-label {
-            font-size: 0.85rem;
-            color: #6c757d;
-            margin-bottom: 0.25rem;
-        }
-        .result-value {
-            font-family: monospace;
-            font-size: 1.1rem;
-            color: #212529;
-            font-weight: 500;
-        }
-        .ip-type-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            margin-top: 0.25rem;
-        }
-        .private {
-            background: #d1ecf1;
-            color: #0c5460;
-        }
-        .public {
-            background: #d4edda;
-            color: #155724;
-        }
-        .loopback {
-            background: #fff3cd;
-            color: #856404;
-        }
-        .examples {
-            background: #e7f3ff;
-            padding: 1rem;
-            border-radius: 4px;
-            margin-top: 1rem;
-        }
-        .examples h4 {
-            margin-top: 0;
-            color: #004085;
-        }
-        .example-item {
-            padding: 0.5rem;
-            margin: 0.25rem 0;
-            background: white;
-            border-radius: 3px;
-            font-family: monospace;
-            cursor: pointer;
-        }
-        .example-item:hover {
-            background: #cce5ff;
-        }
-    </style>
+    <title>IP 계산기</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <style>
+            .examples {
+                background: #e7f3ff;
+            }
+            .examples h4 {
+                color: #004085;
+            }
+        </style>
+    </th:block>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <h1 class="logo">Playground</h1>
-            <ul class="nav-menu">
-                <li th:each="menu : ${menus}">
-                    <a th:href="@{${menu.path}}" 
-                       th:text="${menu.name}"
-                       th:classappend="${currentPage == 'ip-calculator'} ? 'active' : ''">
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
+    <div layout:fragment="content">
+        <div class="tool-container">
+            <div class="page-header">
+                <h2>🌐 IP / 서브넷 계산기</h2>
+                <p class="description">CIDR 표기법으로 IP 범위와 서브넷 정보를 계산합니다.</p>
+            </div>
 
-    <main class="container">
-        <div class="ip-container">
-            <h2>🌐 IP / 네트워크 계산기</h2>
-            <p class="description">CIDR 표기법으로 IP 범위와 서브넷 정보를 계산합니다.</p>
-
-            <div class="ip-section">
+            <div class="tool-section">
                 <div class="input-group">
                     <label>CIDR 표기법</label>
                     <input type="text" id="cidrInput" placeholder="예: 192.168.1.0/24">
-                    <div class="helper-text" style="font-size: 0.85rem; color: #6c757d; margin-top: 0.25rem;">
-                        형식: IP주소/프리픽스길이 (예: 192.168.1.0/24)
-                    </div>
+                    <div class="helper-text">형식: IP주소/프리픽스길이 (예: 192.168.1.0/24)</div>
                 </div>
                 <button class="btn btn-primary" onclick="calculateCidr()">계산하기</button>
 
@@ -181,80 +81,74 @@
             </div>
 
             <div class="examples">
-                <h4>📌 CIDR 예제 (클릭하여 입력)</h4>
+                <h4>자주 사용하는 CIDR 예제 (클릭하여 입력)</h4>
                 <div class="example-item" onclick="fillExample('192.168.1.0/24')">192.168.1.0/24 - Class C 사설망</div>
                 <div class="example-item" onclick="fillExample('10.0.0.0/8')">10.0.0.0/8 - Class A 사설망</div>
                 <div class="example-item" onclick="fillExample('172.16.0.0/12')">172.16.0.0/12 - Class B 사설망</div>
                 <div class="example-item" onclick="fillExample('203.0.113.0/24')">203.0.113.0/24 - 공인 IP 예제</div>
-                <div class="example-item" onclick="fillExample('192.168.1.0/28')">192.168.1.0/28 - 작은 서브넷 (16개 주소)</div>
+                <div class="example-item" onclick="fillExample('192.168.1.0/28')">192.168.1.0/28 - 소형 서브넷 (16개 주소)</div>
                 <div class="example-item" onclick="fillExample('192.168.1.0/30')">192.168.1.0/30 - Point-to-Point (4개 주소)</div>
             </div>
         </div>
-    </main>
+    </div>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2024 Playground. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <script>
-        async function calculateCidr() {
-            const cidr = document.getElementById('cidrInput').value;
-            
-            if (!cidr) {
-                alert('CIDR 표기법을 입력하세요.');
-                return;
-            }
-            
-            try {
-                const response = await fetch('/ip-calculator/api/calculate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ cidr: cidr })
-                });
+    <th:block layout:fragment="extra-js">
+        <script>
+            async function calculateCidr() {
+                const cidr = document.getElementById('cidrInput').value;
                 
-                const data = await response.json();
-                
-                if (data.success) {
-                    displayResults(data);
-                } else {
-                    alert(data.message);
+                if (!cidr) {
+                    alert('CIDR 표기법을 입력하세요.');
+                    return;
                 }
-            } catch (error) {
-                console.error('계산 오류:', error);
-                alert('계산 중 오류가 발생했습니다.');
+                
+                try {
+                    const response = await fetch('/ip-calculator/api/calculate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ cidr: cidr })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        displayResults(data);
+                    } else {
+                        alert(data.message);
+                    }
+                } catch (error) {
+                    console.error('계산 오류:', error);
+                    alert('계산 중 오류가 발생했습니다.');
+                }
             }
-        }
 
-        function displayResults(data) {
-            document.getElementById('ipAddress').textContent = data.ipAddress + '/' + data.prefixLength;
-            document.getElementById('ipClass').textContent = 'Class ' + data.ipClass;
-            document.getElementById('subnetMask').textContent = data.subnetMask;
-            document.getElementById('wildcardMask').textContent = data.wildcardMask;
-            document.getElementById('networkAddress').textContent = data.networkAddress;
-            document.getElementById('broadcastAddress').textContent = data.broadcastAddress;
-            document.getElementById('firstHost').textContent = data.firstHost;
-            document.getElementById('lastHost').textContent = data.lastHost;
-            document.getElementById('totalHosts').textContent = data.totalHosts.toLocaleString();
-            document.getElementById('usableHosts').textContent = data.usableHosts.toLocaleString();
-            
-            const ipTypeBadge = document.getElementById('ipTypeBadge');
-            let badgeClass = 'public';
-            if (data.ipType.includes('사설')) badgeClass = 'private';
-            else if (data.ipType.includes('로컬')) badgeClass = 'loopback';
-            
-            ipTypeBadge.innerHTML = `<span class="ip-type-badge ${badgeClass}">${data.ipType}</span>`;
-            
-            document.getElementById('resultArea').style.display = 'block';
-        }
+            function displayResults(data) {
+                document.getElementById('ipAddress').textContent = data.ipAddress + '/' + data.prefixLength;
+                document.getElementById('ipClass').textContent = 'Class ' + data.ipClass;
+                document.getElementById('subnetMask').textContent = data.subnetMask;
+                document.getElementById('wildcardMask').textContent = data.wildcardMask;
+                document.getElementById('networkAddress').textContent = data.networkAddress;
+                document.getElementById('broadcastAddress').textContent = data.broadcastAddress;
+                document.getElementById('firstHost').textContent = data.firstHost;
+                document.getElementById('lastHost').textContent = data.lastHost;
+                document.getElementById('totalHosts').textContent = data.totalHosts.toLocaleString();
+                document.getElementById('usableHosts').textContent = data.usableHosts.toLocaleString();
+                
+                const ipTypeBadge = document.getElementById('ipTypeBadge');
+                let badgeClass = 'public';
+                if (data.ipType.includes('사설')) badgeClass = 'private';
+                else if (data.ipType.includes('로컬')) badgeClass = 'loopback';
+                
+                ipTypeBadge.innerHTML = `<span class="ip-type-badge ${badgeClass}">${data.ipType}</span>`;
+                
+                document.getElementById('resultArea').style.display = 'block';
+            }
 
-        function fillExample(cidr) {
-            document.getElementById('cidrInput').value = cidr;
-            calculateCidr();
-        }
-    </script>
+            function fillExample(cidr) {
+                document.getElementById('cidrInput').value = cidr;
+                calculateCidr();
+            }
+        </script>
+    </th:block>
 </body>
 </html>
