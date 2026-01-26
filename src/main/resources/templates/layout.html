@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title layout:title-pattern="$CONTENT_TITLE - $LAYOUT_TITLE">Playground</title>
+    
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    
+    <!-- 페이지별 CSS -->
+    <th:block layout:fragment="extra-css"></th:block>
+</head>
+<body>
+    <!-- 네비게이션 바 (공통) -->
+    <nav class="navbar" th:fragment="navbar">
+        <div class="container">
+            <h1 class="logo">
+                <a th:href="@{/}" style="color: inherit; text-decoration: none;">Playground</a>
+            </h1>
+            <ul class="nav-menu">
+                <li th:each="menu : ${menus}">
+                    <a th:href="@{${menu.path}}" 
+                       th:text="${menu.name}"
+                       th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''">
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="container">
+        <div layout:fragment="content">
+            <!-- 페이지별 컨텐츠가 여기에 삽입됩니다 -->
+        </div>
+    </main>
+
+    <!-- 푸터 (공통) -->
+    <footer th:fragment="footer">
+        <div class="container">
+            <p>&copy; <span th:text="${#dates.year(#dates.createNow())}">2024</span> Playground. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- 공통 JavaScript -->
+    <th:block layout:fragment="extra-js"></th:block>
+</body>
+</html>
