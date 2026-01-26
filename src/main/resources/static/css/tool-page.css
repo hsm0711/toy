@@ -1,0 +1,341 @@
+/* src/main/resources/static/css/tool-page.css */
+
+/* 도구 컨테이너 */
+.tool-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+}
+
+.page-header h2 {
+    color: #333;
+    margin-bottom: 0.5rem;
+}
+
+/* 섹션 스타일 */
+.tool-section {
+    background: white;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.tool-section h3 {
+    color: #495057;
+    margin-bottom: 1rem;
+}
+
+/* 입력 그룹 */
+.input-group {
+    margin-bottom: 1rem;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #495057;
+}
+
+.input-group input,
+.input-group select,
+.input-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.input-group input:focus,
+.input-group select:focus,
+.input-group textarea:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.input-group textarea {
+    font-family: 'Courier New', monospace;
+    resize: vertical;
+}
+
+/* 체크박스 그룹 */
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkbox-item input[type="checkbox"] {
+    width: auto;
+}
+
+/* 입력 행 (그리드) */
+.input-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
+}
+
+/* 결과 박스 */
+.result-box {
+    background: #e9ecef;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    display: none;
+}
+
+.result-box.show {
+    display: block;
+}
+
+.result-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.result-item:last-child {
+    border-bottom: none;
+}
+
+.result-label {
+    font-weight: 500;
+    color: #495057;
+}
+
+.result-value {
+    color: #212529;
+    font-family: monospace;
+}
+
+/* 결과 그리드 */
+.result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* 버튼 그룹 */
+.button-group {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1rem 0;
+}
+
+.btn-row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* 복사 버튼 */
+.copy-btn {
+    padding: 0.5rem 1rem;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.copy-btn:hover {
+    background: #218838;
+}
+
+.copy-single-btn {
+    padding: 0.25rem 0.5rem;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.copy-single-btn:hover {
+    background: #218838;
+}
+
+/* 클리어 버튼 */
+.clear-btn {
+    padding: 0.5rem 1rem;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.clear-btn:hover {
+    background: #5a6268;
+}
+
+/* 포맷 버튼 */
+.format-btn {
+    padding: 0.5rem 1rem;
+    background: #17a2b8;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.format-btn:hover {
+    background: #138496;
+}
+
+/* 상태 배지 */
+.status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-open, .status-success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-closed, .status-error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.status-active {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+/* IP 타입 배지 */
+.ip-type-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    margin-top: 0.25rem;
+}
+
+.private {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.public {
+    background: #d4edda;
+    color: #155724;
+}
+
+.loopback {
+    background: #fff3cd;
+    color: #856404;
+}
+
+/* 예제 박스 */
+.examples {
+    background: #fff3cd;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+.examples h4 {
+    margin-top: 0;
+    color: #856404;
+}
+
+.example-item {
+    padding: 0.5rem;
+    margin: 0.25rem 0;
+    background: white;
+    border-radius: 3px;
+    font-family: monospace;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.example-item:hover {
+    background: #ffecb3;
+}
+
+/* 에러 메시지 */
+.error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}
+
+/* 현재 시간 박스 */
+.current-time-box {
+    background: #d1ecf1;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+/* 범위 슬라이더 값 표시 */
+.range-value {
+    display: inline-block;
+    margin-left: 1rem;
+    font-weight: bold;
+    color: #667eea;
+}
+
+/* 미디어 쿼리 */
+@media (max-width: 768px) {
+    .tool-container {
+        padding: 1rem;
+    }
+    
+    .input-row,
+    .grid-2,
+    .grid-3 {
+        grid-template-columns: 1fr;
+    }
+    
+    .result-grid {
+        grid-template-columns: 1fr;
+    }
+}
