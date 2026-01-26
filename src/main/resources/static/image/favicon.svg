@@ -10,8 +10,9 @@
 
         /* Dark Mode */
         @media (prefers-color-scheme: dark) {
-            .shadow { fill: #B53471; } /* Dark Pink */
-            .cloud { fill: #FD79A8; }  /* Neon Pink */
+            .shadow { fill: #003300; } /* Dark Green */
+            .cloud { fill: #000000; }  /* Terminal Black */
+            .content { fill: #00ff00; } /* Terminal Green */
         }
     </style>
     <!-- Cloud Shadow (1px Depth) -->
