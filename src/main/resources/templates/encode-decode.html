@@ -1,113 +1,66 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Encode / Decode - Playground</title>
-    <link rel="stylesheet" th:href="@{/css/style.css}">
-    <style>
-        .encode-container {
-            max-width: 1000px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        .tab-buttons {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .tab-btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            background: white;
-            cursor: pointer;
-            border-radius: 4px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-        .tab-btn.active {
-            background: #007bff;
-            color: white;
-        }
-        .tab-content {
-            display: none;
-            background: white;
-            padding: 1.5rem;
-            border-radius: 6px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .tab-content.active {
-            display: block;
-        }
-        .text-area-group {
-            margin-bottom: 1rem;
-        }
-        .text-area-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #495057;
-        }
-        .text-area-group textarea {
-            width: 100%;
-            min-height: 150px;
-            padding: 0.75rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-            font-size: 1rem;
-            font-family: monospace;
-            resize: vertical;
-        }
-        .button-group {
-            display: flex;
-            gap: 0.5rem;
-            margin: 1rem 0;
-        }
-        .copy-btn {
-            padding: 0.5rem 1rem;
-            background: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .copy-btn:hover {
-            background: #218838;
-        }
-        .clear-btn {
-            padding: 0.5rem 1rem;
-            background: #6c757d;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .clear-btn:hover {
-            background: #5a6268;
-        }
-    </style>
+    <title>Encode / Decode</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <style>
+            .tab-buttons {
+                display: flex;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+            }
+            .tab-btn {
+                padding: 0.75rem 1.5rem;
+                border: none;
+                background: white;
+                cursor: pointer;
+                border-radius: 4px;
+                font-weight: 500;
+                transition: all 0.3s;
+            }
+            .tab-btn.active {
+                background: #667eea;
+                color: white;
+            }
+            .tab-content {
+                display: none;
+                background: white;
+                padding: 1.5rem;
+                border-radius: 6px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .tab-content.active {
+                display: block;
+            }
+            .text-area-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                font-weight: 500;
+                color: #495057;
+            }
+            .text-area-group textarea {
+                width: 100%;
+                min-height: 150px;
+                padding: 0.75rem;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                font-size: 1rem;
+                font-family: monospace;
+                resize: vertical;
+            }
+        </style>
+    </th:block>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="container">
-            <h1 class="logo">Playground</h1>
-            <ul class="nav-menu">
-                <li th:each="menu : ${menus}">
-                    <a th:href="@{${menu.path}}" 
-                       th:text="${menu.name}"
-                       th:classappend="${currentPage == 'encode-decode'} ? 'active' : ''">
-                    </a>
-                </li>
-            </ul>
-        </div>
-    </nav>
-
-    <main class="container">
-        <div class="encode-container">
-            <h2>🔐 Encode / Decode 도구</h2>
-            <p class="description">Base64, URL, HTML 인코딩/디코딩을 지원합니다.</p>
+    <div layout:fragment="content">
+        <div class="tool-container">
+            <div class="page-header">
+                <h2>🔐 Encode / Decode 도구</h2>
+                <p class="description">Base64, URL, HTML 인코딩/디코딩을 지원합니다.</p>
+            </div>
 
             <div class="tab-buttons">
                 <button class="tab-btn active" onclick="switchTab('base64')">Base64</button>
@@ -172,128 +125,114 @@
                 <button class="copy-btn" onclick="copyToClipboard('htmlOutput')">📋 복사하기</button>
             </div>
         </div>
-    </main>
+    </div>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2024 Playground. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <script>
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(tabName + 'Tab').classList.add('active');
-        }
-
-        async function callApi(endpoint, input) {
-            try {
-                const response = await fetch(endpoint, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ input: input })
-                });
+    <th:block layout:fragment="extra-js">
+        <script>
+            function switchTab(tabName) {
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
                 
-                const data = await response.json();
-                return data;
-            } catch (error) {
-                console.error('API 호출 오류:', error);
-                return { success: false, message: '처리 중 오류가 발생했습니다.' };
+                event.target.classList.add('active');
+                document.getElementById(tabName + 'Tab').classList.add('active');
             }
-        }
 
-        async function base64Encode() {
-            const input = document.getElementById('base64Input').value;
-            const data = await callApi('/encode-decode/api/base64-encode', input);
-            
-            if (data.success) {
-                document.getElementById('base64Output').value = data.result;
-            } else {
-                alert(data.message);
+            async function callApi(endpoint, input) {
+                try {
+                    const response = await fetch(endpoint, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ input: input })
+                    });
+                    return await response.json();
+                } catch (error) {
+                    console.error('API 호출 오류:', error);
+                    return { success: false, message: '처리 중 오류가 발생했습니다.' };
+                }
             }
-        }
 
-        async function base64Decode() {
-            const input = document.getElementById('base64Input').value;
-            const data = await callApi('/encode-decode/api/base64-decode', input);
-            
-            if (data.success) {
-                document.getElementById('base64Output').value = data.result;
-            } else {
-                alert(data.message);
+            async function base64Encode() {
+                const input = document.getElementById('base64Input').value;
+                const data = await callApi('/encode-decode/api/base64-encode', input);
+                if (data.success) {
+                    document.getElementById('base64Output').value = data.result;
+                } else {
+                    alert(data.message);
+                }
             }
-        }
 
-        async function urlEncode() {
-            const input = document.getElementById('urlInput').value;
-            const data = await callApi('/encode-decode/api/url-encode', input);
-            
-            if (data.success) {
-                document.getElementById('urlOutput').value = data.result;
-            } else {
-                alert(data.message);
+            async function base64Decode() {
+                const input = document.getElementById('base64Input').value;
+                const data = await callApi('/encode-decode/api/base64-decode', input);
+                if (data.success) {
+                    document.getElementById('base64Output').value = data.result;
+                } else {
+                    alert(data.message);
+                }
             }
-        }
 
-        async function urlDecode() {
-            const input = document.getElementById('urlInput').value;
-            const data = await callApi('/encode-decode/api/url-decode', input);
-            
-            if (data.success) {
-                document.getElementById('urlOutput').value = data.result;
-            } else {
-                alert(data.message);
+            async function urlEncode() {
+                const input = document.getElementById('urlInput').value;
+                const data = await callApi('/encode-decode/api/url-encode', input);
+                if (data.success) {
+                    document.getElementById('urlOutput').value = data.result;
+                } else {
+                    alert(data.message);
+                }
             }
-        }
 
-        async function htmlEscape() {
-            const input = document.getElementById('htmlInput').value;
-            const data = await callApi('/encode-decode/api/html-escape', input);
-            
-            if (data.success) {
-                document.getElementById('htmlOutput').value = data.result;
-            } else {
-                alert(data.message);
+            async function urlDecode() {
+                const input = document.getElementById('urlInput').value;
+                const data = await callApi('/encode-decode/api/url-decode', input);
+                if (data.success) {
+                    document.getElementById('urlOutput').value = data.result;
+                } else {
+                    alert(data.message);
+                }
             }
-        }
 
-        async function htmlUnescape() {
-            const input = document.getElementById('htmlInput').value;
-            const data = await callApi('/encode-decode/api/html-unescape', input);
-            
-            if (data.success) {
-                document.getElementById('htmlOutput').value = data.result;
-            } else {
-                alert(data.message);
+            async function htmlEscape() {
+                const input = document.getElementById('htmlInput').value;
+                const data = await callApi('/encode-decode/api/html-escape', input);
+                if (data.success) {
+                    document.getElementById('htmlOutput').value = data.result;
+                } else {
+                    alert(data.message);
+                }
             }
-        }
 
-        function clearBase64() {
-            document.getElementById('base64Input').value = '';
-            document.getElementById('base64Output').value = '';
-        }
+            async function htmlUnescape() {
+                const input = document.getElementById('htmlInput').value;
+                const data = await callApi('/encode-decode/api/html-unescape', input);
+                if (data.success) {
+                    document.getElementById('htmlOutput').value = data.result;
+                } else {
+                    alert(data.message);
+                }
+            }
 
-        function clearUrl() {
-            document.getElementById('urlInput').value = '';
-            document.getElementById('urlOutput').value = '';
-        }
+            function clearBase64() {
+                document.getElementById('base64Input').value = '';
+                document.getElementById('base64Output').value = '';
+            }
 
-        function clearHtml() {
-            document.getElementById('htmlInput').value = '';
-            document.getElementById('htmlOutput').value = '';
-        }
+            function clearUrl() {
+                document.getElementById('urlInput').value = '';
+                document.getElementById('urlOutput').value = '';
+            }
 
-        function copyToClipboard(elementId) {
-            const textarea = document.getElementById(elementId);
-            textarea.select();
-            document.execCommand('copy');
-            alert('복사되었습니다!');
-        }
-    </script>
+            function clearHtml() {
+                document.getElementById('htmlInput').value = '';
+                document.getElementById('htmlOutput').value = '';
+            }
+
+            function copyToClipboard(elementId) {
+                const textarea = document.getElementById(elementId);
+                textarea.select();
+                document.execCommand('copy');
+                alert('복사했습니다!');
+            }
+        </script>
+    </th:block>
 </body>
 </html>
