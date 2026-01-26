@@ -1,578 +1,494 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>메뉴 관리 - Playground</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    <title>메뉴 관리</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <style>
+            .action-bar {
+                background: white;
+                padding: 1.5rem;
+                border-radius: 8px;
+                margin-bottom: 1.5rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
 
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0d1117;
-            color: #c9d1d9;
-            padding: 20px;
-        }
+            .menu-table {
+                background: white;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                overflow: hidden;
+            }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+            }
 
-        .header {
-            background: #161b22;
-            padding: 30px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #30363d;
-        }
+            thead {
+                background: #f8f9fa;
+            }
 
-        .header h1 {
-            color: #58a6ff;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+            th {
+                padding: 1rem;
+                text-align: left;
+                color: #495057;
+                font-weight: 600;
+                border-bottom: 2px solid #dee2e6;
+            }
 
-        .header p {
-            color: #8b949e;
-        }
+            td {
+                padding: 1rem;
+                border-bottom: 1px solid #dee2e6;
+            }
 
-        .action-bar {
-            background: #161b22;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            border: 1px solid #30363d;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+            tbody tr:hover {
+                background: #f8f9fa;
+            }
 
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
+            tbody tr:last-child td {
+                border-bottom: none;
+            }
 
-        .btn-primary {
-            background: #238636;
-            color: white;
-        }
+            .status-badge {
+                padding: 0.25rem 0.75rem;
+                border-radius: 4px;
+                font-size: 0.875rem;
+                font-weight: 500;
+            }
 
-        .btn-primary:hover {
-            background: #2ea043;
-        }
+            .status-active {
+                background: #d4edda;
+                color: #155724;
+            }
 
-        .btn-secondary {
-            background: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-        }
+            .status-inactive {
+                background: #f8d7da;
+                color: #721c24;
+            }
 
-        .btn-secondary:hover {
-            background: #30363d;
-        }
+            .modal {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0, 0, 0, 0.5);
+                z-index: 1000;
+            }
 
-        .btn-danger {
-            background: #da3633;
-            color: white;
-        }
+            .modal-content {
+                background: white;
+                border-radius: 8px;
+                max-width: 500px;
+                margin: 100px auto;
+                padding: 2rem;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            }
 
-        .btn-danger:hover {
-            background: #f85149;
-        }
+            .modal-header {
+                margin-bottom: 1.5rem;
+            }
 
-        .btn-sm {
-            padding: 5px 10px;
-            font-size: 12px;
-        }
+            .modal-header h2 {
+                color: #212529;
+                margin: 0;
+            }
 
-        .menu-table {
-            background: #161b22;
-            border-radius: 8px;
-            border: 1px solid #30363d;
-            overflow: hidden;
-        }
+            .form-group {
+                margin-bottom: 1.5rem;
+            }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+            .form-group label {
+                display: block;
+                margin-bottom: 0.5rem;
+                color: #495057;
+                font-size: 0.875rem;
+                font-weight: 500;
+            }
 
-        thead {
-            background: #21262d;
-        }
+            .form-control {
+                width: 100%;
+                padding: 0.75rem;
+                border: 1px solid #ced4da;
+                border-radius: 4px;
+                font-size: 1rem;
+            }
 
-        th {
-            padding: 15px;
-            text-align: left;
-            color: #8b949e;
-            font-weight: 600;
-            border-bottom: 1px solid #30363d;
-        }
+            .form-control:focus {
+                outline: none;
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
 
-        td {
-            padding: 15px;
-            border-bottom: 1px solid #30363d;
-        }
+            .checkbox-wrapper {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
 
-        tbody tr:hover {
-            background: #21262d;
-        }
+            .checkbox-wrapper input[type="checkbox"] {
+                width: 18px;
+                height: 18px;
+                cursor: pointer;
+            }
 
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
+            .modal-actions {
+                display: flex;
+                gap: 0.75rem;
+                justify-content: flex-end;
+                margin-top: 1.5rem;
+            }
 
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-        }
+            .loading {
+                text-align: center;
+                padding: 3rem;
+                color: #6c757d;
+            }
 
-        .status-active {
-            background: #1a7f37;
-            color: #7ee787;
-        }
+            .empty-state {
+                text-align: center;
+                padding: 3rem;
+                color: #6c757d;
+            }
 
-        .status-inactive {
-            background: #6e7681;
-            color: #c9d1d9;
-        }
+            .toast {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #28a745;
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                z-index: 2000;
+                display: none;
+            }
 
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1000;
-        }
+            .toast.error {
+                background: #dc3545;
+            }
 
-        .modal-content {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            max-width: 500px;
-            margin: 100px auto;
-            padding: 30px;
-        }
+            .actions {
+                display: flex;
+                gap: 0.5rem;
+            }
 
-        .modal-header {
-            margin-bottom: 20px;
-        }
+            .icon-btn {
+                background: none;
+                border: none;
+                color: #667eea;
+                cursor: pointer;
+                font-size: 1.25rem;
+                padding: 0.25rem;
+                transition: color 0.2s;
+            }
 
-        .modal-header h2 {
-            color: #58a6ff;
-        }
+            .icon-btn:hover {
+                color: #5568d3;
+            }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+            .icon-btn.danger {
+                color: #dc3545;
+            }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            color: #8b949e;
-            font-size: 14px;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 10px;
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            color: #c9d1d9;
-            font-size: 14px;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: #58a6ff;
-        }
-
-        .checkbox-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .checkbox-wrapper input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-            margin-top: 20px;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 50px;
-            color: #8b949e;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 50px;
-            color: #8b949e;
-        }
-
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #238636;
-            color: white;
-            padding: 15px 20px;
-            border-radius: 6px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-            z-index: 2000;
-            display: none;
-        }
-
-        .toast.error {
-            background: #da3633;
-        }
-
-        .actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        .icon-btn {
-            background: none;
-            border: none;
-            color: #58a6ff;
-            cursor: pointer;
-            font-size: 18px;
-            padding: 5px;
-        }
-
-        .icon-btn:hover {
-            color: #79c0ff;
-        }
-
-        .icon-btn.danger {
-            color: #f85149;
-        }
-
-        .icon-btn.danger:hover {
-            color: #ff7b72;
-        }
-    </style>
+            .icon-btn.danger:hover {
+                color: #c82333;
+            }
+        </style>
+    </th:block>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>🔧 메뉴 관리</h1>
-            <p>애플리케이션의 메뉴를 생성, 수정, 삭제할 수 있습니다.</p>
-        </div>
-
-        <div class="action-bar">
-            <button class="btn btn-primary" onclick="showCreateModal()">
-                ➕ 새 메뉴 추가
-            </button>
-            <button class="btn btn-secondary" onclick="window.location.href='/'">
-                🏠 홈으로
-            </button>
-        </div>
-
-        <div class="menu-table">
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 50px;">ID</th>
-                        <th>메뉴명</th>
-                        <th>경로</th>
-                        <th style="width: 80px;">순서</th>
-                        <th style="width: 100px;">상태</th>
-                        <th style="width: 150px;">작업</th>
-                    </tr>
-                </thead>
-                <tbody id="menuTableBody">
-                    <tr>
-                        <td colspan="6" class="loading">메뉴를 불러오는 중...</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- 메뉴 생성/수정 모달 -->
-    <div id="menuModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle">새 메뉴 추가</h2>
+    <div layout:fragment="content">
+        <div class="tool-container">
+            <div class="page-header">
+                <h2>🎯 메뉴 관리</h2>
+                <p class="description">애플리케이션의 메뉴를 생성, 수정, 삭제할 수 있습니다.</p>
             </div>
-            <form id="menuForm">
-                <input type="hidden" id="menuId">
-                
-                <div class="form-group">
-                    <label for="menuName">메뉴명 *</label>
-                    <input type="text" id="menuName" class="form-control" required>
-                </div>
 
-                <div class="form-group">
-                    <label for="menuPath">경로 *</label>
-                    <input type="text" id="menuPath" class="form-control" placeholder="/example" required>
-                </div>
+            <div class="action-bar">
+                <button class="btn btn-primary" onclick="showCreateModal()">
+                    ➕ 새 메뉴 추가
+                </button>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">
+                    🏠 홈으로
+                </button>
+            </div>
 
-                <div class="form-group">
-                    <label for="menuIcon">아이콘 (선택)</label>
-                    <input type="text" id="menuIcon" class="form-control" placeholder="📱">
-                </div>
-
-                <div class="form-group">
-                    <label for="displayOrder">표시 순서 *</label>
-                    <input type="number" id="displayOrder" class="form-control" value="0" required>
-                </div>
-
-                <div class="form-group">
-                    <div class="checkbox-wrapper">
-                        <input type="checkbox" id="isActive" checked>
-                        <label for="isActive">활성화</label>
-                    </div>
-                </div>
-
-                <div class="modal-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
-                    <button type="submit" class="btn btn-primary">저장</button>
-                </div>
-            </form>
+            <div class="menu-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">ID</th>
+                            <th>메뉴명</th>
+                            <th>경로</th>
+                            <th style="width: 80px;">순서</th>
+                            <th style="width: 100px;">상태</th>
+                            <th style="width: 150px;">작업</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuTableBody">
+                        <tr>
+                            <td colspan="6" class="loading">메뉴를 불러오는 중...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
+
+        <!-- 메뉴 생성/수정 모달 -->
+        <div id="menuModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitle">➕ 메뉴 추가</h2>
+                </div>
+                <form id="menuForm">
+                    <input type="hidden" id="menuId">
+                    
+                    <div class="form-group">
+                        <label for="menuName">메뉴명 *</label>
+                        <input type="text" id="menuName" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="menuPath">경로 *</label>
+                        <input type="text" id="menuPath" class="form-control" placeholder="/example" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="menuIcon">아이콘 (선택)</label>
+                        <input type="text" id="menuIcon" class="form-control" placeholder="🔧">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="displayOrder">표시 순서 *</label>
+                        <input type="number" id="displayOrder" class="form-control" value="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="isActive" checked>
+                            <label for="isActive">활성화</label>
+                        </div>
+                    </div>
+
+                    <div class="modal-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">취소</button>
+                        <button type="submit" class="btn btn-primary">저장</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 토스트 팝업 -->
+        <div id="toast" class="toast"></div>
     </div>
 
-    <!-- 토스트 알림 -->
-    <div id="toast" class="toast"></div>
+    <th:block layout:fragment="extra-js">
+        <script>
+            let menus = [];
+            let editingMenuId = null;
 
-    <script>
-        let menus = [];
-        let editingMenuId = null;
-
-        // 페이지 로드 시 메뉴 목록 불러오기
-        window.onload = function() {
-            loadMenus();
-        };
-
-        // 메뉴 목록 로드
-        async function loadMenus() {
-            try {
-                const response = await fetch('/mngt/menu/api/list');
-                menus = await response.json();
-                renderMenuTable();
-            } catch (error) {
-                console.error('메뉴 로드 실패:', error);
-                showToast('메뉴를 불러오는 중 오류가 발생했습니다.', 'error');
-            }
-        }
-
-        // 테이블 렌더링
-        function renderMenuTable() {
-            const tbody = document.getElementById('menuTableBody');
-            
-            if (menus.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="6" class="empty-state">
-                            등록된 메뉴가 없습니다.<br>
-                            <button class="btn btn-primary btn-sm" onclick="showCreateModal()" style="margin-top: 10px;">
-                                첫 메뉴 추가하기
-                            </button>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            tbody.innerHTML = menus.map(menu => `
-                <tr>
-                    <td>${menu.id}</td>
-                    <td>${menu.icon ? menu.icon + ' ' : ''}${menu.name}</td>
-                    <td><code>${menu.path}</code></td>
-                    <td>${menu.displayOrder}</td>
-                    <td>
-                        <span class="status-badge ${menu.isActive ? 'status-active' : 'status-inactive'}">
-                            ${menu.isActive ? '활성' : '비활성'}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="actions">
-                            <button class="icon-btn" onclick="toggleMenu(${menu.id})" title="${menu.isActive ? '비활성화' : '활성화'}">
-                                ${menu.isActive ? '👁️' : '👁️‍🗨️'}
-                            </button>
-                            <button class="icon-btn" onclick="showEditModal(${menu.id})" title="수정">
-                                ✏️
-                            </button>
-                            <button class="icon-btn danger" onclick="deleteMenu(${menu.id})" title="삭제">
-                                🗑️
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // 메뉴 생성 모달 표시
-        function showCreateModal() {
-            editingMenuId = null;
-            document.getElementById('modalTitle').textContent = '새 메뉴 추가';
-            document.getElementById('menuForm').reset();
-            document.getElementById('menuId').value = '';
-            document.getElementById('isActive').checked = true;
-            document.getElementById('menuModal').style.display = 'block';
-        }
-
-        // 메뉴 수정 모달 표시
-        function showEditModal(id) {
-            editingMenuId = id;
-            const menu = menus.find(m => m.id === id);
-            
-            if (!menu) return;
-
-            document.getElementById('modalTitle').textContent = '메뉴 수정';
-            document.getElementById('menuId').value = menu.id;
-            document.getElementById('menuName').value = menu.name;
-            document.getElementById('menuPath').value = menu.path;
-            document.getElementById('menuIcon').value = menu.icon || '';
-            document.getElementById('displayOrder').value = menu.displayOrder;
-            document.getElementById('isActive').checked = menu.isActive;
-            document.getElementById('menuModal').style.display = 'block';
-        }
-
-        // 모달 닫기
-        function closeModal() {
-            document.getElementById('menuModal').style.display = 'none';
-        }
-
-        // 폼 제출
-        document.getElementById('menuForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-
-            const menuData = {
-                name: document.getElementById('menuName').value,
-                path: document.getElementById('menuPath').value,
-                icon: document.getElementById('menuIcon').value || null,
-                displayOrder: parseInt(document.getElementById('displayOrder').value),
-                isActive: document.getElementById('isActive').checked
+            window.onload = function() {
+                loadMenus();
             };
 
-            try {
-                let response;
+            async function loadMenus() {
+                try {
+                    const response = await fetch('/mngt/menu/api/list');
+                    menus = await response.json();
+                    renderMenuTable();
+                } catch (error) {
+                    console.error('메뉴 로드 실패:', error);
+                    showToast('메뉴를 불러오는 중 오류가 발생했습니다.', 'error');
+                }
+            }
+
+            function renderMenuTable() {
+                const tbody = document.getElementById('menuTableBody');
                 
-                if (editingMenuId) {
-                    // 수정
-                    response = await fetch(`/mngt/menu/api/update/${editingMenuId}`, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(menuData)
-                    });
-                } else {
-                    // 생성
-                    response = await fetch('/mngt/menu/api/create', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(menuData)
-                    });
+                if (menus.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="empty-state">
+                                등록된 메뉴가 없습니다.<br>
+                                <button class="btn btn-primary btn-sm" onclick="showCreateModal()" style="margin-top: 10px;">
+                                    첫 메뉴 추가하기
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    return;
                 }
 
-                const result = await response.json();
+                tbody.innerHTML = menus.map(menu => `
+                    <tr>
+                        <td>${menu.id}</td>
+                        <td>${menu.icon ? menu.icon + ' ' : ''}${menu.name}</td>
+                        <td><code>${menu.path}</code></td>
+                        <td>${menu.displayOrder}</td>
+                        <td>
+                            <span class="status-badge ${menu.isActive ? 'status-active' : 'status-inactive'}">
+                                ${menu.isActive ? '활성' : '비활성'}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <button class="icon-btn" onclick="toggleMenu(${menu.id})" title="${menu.isActive ? '비활성화' : '활성화'}">
+                                    ${menu.isActive ? '👁️' : '👁️‍🗨️'}
+                                </button>
+                                <button class="icon-btn" onclick="showEditModal(${menu.id})" title="수정">
+                                    ✏️
+                                </button>
+                                <button class="icon-btn danger" onclick="deleteMenu(${menu.id})" title="삭제">
+                                    🗑️
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `).join('');
+            }
 
-                if (result.success) {
-                    showToast(result.message);
+            function showCreateModal() {
+                editingMenuId = null;
+                document.getElementById('modalTitle').textContent = '➕ 메뉴 추가';
+                document.getElementById('menuForm').reset();
+                document.getElementById('menuId').value = '';
+                document.getElementById('isActive').checked = true;
+                document.getElementById('menuModal').style.display = 'block';
+            }
+
+            function showEditModal(id) {
+                editingMenuId = id;
+                const menu = menus.find(m => m.id === id);
+                
+                if (!menu) return;
+
+                document.getElementById('modalTitle').textContent = '메뉴 수정';
+                document.getElementById('menuId').value = menu.id;
+                document.getElementById('menuName').value = menu.name;
+                document.getElementById('menuPath').value = menu.path;
+                document.getElementById('menuIcon').value = menu.icon || '';
+                document.getElementById('displayOrder').value = menu.displayOrder;
+                document.getElementById('isActive').checked = menu.isActive;
+                document.getElementById('menuModal').style.display = 'block';
+            }
+
+            function closeModal() {
+                document.getElementById('menuModal').style.display = 'none';
+            }
+
+            document.getElementById('menuForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const menuData = {
+                    name: document.getElementById('menuName').value,
+                    path: document.getElementById('menuPath').value,
+                    icon: document.getElementById('menuIcon').value || null,
+                    displayOrder: parseInt(document.getElementById('displayOrder').value),
+                    isActive: document.getElementById('isActive').checked
+                };
+
+                try {
+                    let response;
+                    
+                    if (editingMenuId) {
+                        response = await fetch(`/mngt/menu/api/update/${editingMenuId}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(menuData)
+                        });
+                    } else {
+                        response = await fetch('/mngt/menu/api/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(menuData)
+                        });
+                    }
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showToast(result.message);
+                        closeModal();
+                        loadMenus();
+                    } else {
+                        showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('메뉴 저장 실패:', error);
+                    showToast('메뉴 저장 중 오류가 발생했습니다.', 'error');
+                }
+            });
+
+            async function toggleMenu(id) {
+                try {
+                    const response = await fetch(`/mngt/menu/api/toggle/${id}`, {
+                        method: 'PATCH'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showToast(result.message);
+                        loadMenus();
+                    } else {
+                        showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('메뉴 토글 실패:', error);
+                    showToast('메뉴 상태 변경 중 오류가 발생했습니다.', 'error');
+                }
+            }
+
+            async function deleteMenu(id) {
+                if (!confirm('정말로 이 메뉴를 삭제하시겠습니까?')) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/mngt/menu/api/delete/${id}`, {
+                        method: 'DELETE'
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showToast(result.message);
+                        loadMenus();
+                    } else {
+                        showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('메뉴 삭제 실패:', error);
+                    showToast('메뉴 삭제 중 오류가 발생했습니다.', 'error');
+                }
+            }
+
+            function showToast(message, type = 'success') {
+                const toast = document.getElementById('toast');
+                toast.textContent = message;
+                toast.className = 'toast ' + (type === 'error' ? 'error' : '');
+                toast.style.display = 'block';
+
+                setTimeout(() => {
+                    toast.style.display = 'none';
+                }, 3000);
+            }
+
+            window.onclick = function(event) {
+                const modal = document.getElementById('menuModal');
+                if (event.target === modal) {
                     closeModal();
-                    loadMenus();
-                } else {
-                    showToast(result.message, 'error');
                 }
-            } catch (error) {
-                console.error('메뉴 저장 실패:', error);
-                showToast('메뉴 저장 중 오류가 발생했습니다.', 'error');
             }
-        });
-
-        // 메뉴 활성화/비활성화
-        async function toggleMenu(id) {
-            try {
-                const response = await fetch(`/mngt/menu/api/toggle/${id}`, {
-                    method: 'PATCH'
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message);
-                    loadMenus();
-                } else {
-                    showToast(result.message, 'error');
-                }
-            } catch (error) {
-                console.error('메뉴 토글 실패:', error);
-                showToast('메뉴 상태 변경 중 오류가 발생했습니다.', 'error');
-            }
-        }
-
-        // 메뉴 삭제
-        async function deleteMenu(id) {
-            if (!confirm('정말로 이 메뉴를 삭제하시겠습니까?')) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/mngt/menu/api/delete/${id}`, {
-                    method: 'DELETE'
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message);
-                    loadMenus();
-                } else {
-                    showToast(result.message, 'error');
-                }
-            } catch (error) {
-                console.error('메뉴 삭제 실패:', error);
-                showToast('메뉴 삭제 중 오류가 발생했습니다.', 'error');
-            }
-        }
-
-        // 토스트 알림 표시
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = 'toast ' + (type === 'error' ? 'error' : '');
-            toast.style.display = 'block';
-
-            setTimeout(() => {
-                toast.style.display = 'none';
-            }, 3000);
-        }
-
-        // 모달 외부 클릭 시 닫기
-        window.onclick = function(event) {
-            const modal = document.getElementById('menuModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-    </script>
+        </script>
+    </th:block>
 </body>
 </html>
