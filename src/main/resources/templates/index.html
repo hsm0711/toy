@@ -1,48 +1,295 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
-      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorate="~{layout}">
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
 <head>
-    <title>홈</title>
-    <th:block layout:fragment="extra-css">
-        <link rel="stylesheet" th:href="@{/css/home.css}">
-    </th:block>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="다양한 개발 도구를 제공하는 웹 애플리케이션 - PDF 병합, 정규식 테스터, UUID 생성기 등">
+    <meta name="keywords" content="개발도구, PDF병합, 정규식, UUID, 타임스탬프, IP계산기">
+    <meta name="author" content="Playground">
+    
+    <!-- PWA 설정 -->
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Playground">
+    
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" th:href="@{/image/icon-152x152.png}">
+    <link rel="apple-touch-icon" sizes="152x152" th:href="@{/image/icon-152x152.png}">
+    <link rel="apple-touch-icon" sizes="180x180" th:href="@{/image/icon-192x192.png}">
+    
+    <!-- Manifest -->
+    <link rel="manifest" th:href="@{/manifest.json}">
+    
+    <title layout:title-pattern="$CONTENT_TITLE - $LAYOUT_TITLE">Playground</title>
+    
+    <!-- 공통 CSS -->
+    <link rel="stylesheet" th:href="@{/css/common.css}">
+    
+    <!-- 페이지별 CSS -->
+    <th:block layout:fragment="extra-css"></th:block>
+    <link rel="icon" type="image/svg+xml" th:href="@{/image/favicon.svg}">
+    
+    <style>
+        /* PWA 설치 배너 스타일 */
+        .pwa-install-banner {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem;
+            display: none;
+            z-index: 1000;
+            box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        .pwa-install-banner.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .pwa-banner-content {
+            flex: 1;
+        }
+        
+        .pwa-banner-content h3 {
+            margin: 0 0 0.25rem 0;
+            font-size: 1rem;
+        }
+        
+        .pwa-banner-content p {
+            margin: 0;
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .pwa-banner-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .pwa-install-btn, .pwa-dismiss-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        
+        .pwa-install-btn {
+            background: white;
+            color: #667eea;
+        }
+        
+        .pwa-install-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .pwa-dismiss-btn {
+            background: transparent;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        
+        .pwa-dismiss-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        
+        /* 오프라인 인디케이터 */
+        .offline-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #f44336;
+            color: white;
+            text-align: center;
+            padding: 0.5rem;
+            display: none;
+            z-index: 2000;
+            font-size: 0.875rem;
+        }
+        
+        .offline-indicator.show {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .pwa-banner-actions {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .pwa-install-banner.show {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div layout:fragment="content">
-        <section class="hero">
-            <h2>Welcome to the Playground!</h2>
-            <p>이곳은 다양한 기능을 자유롭게 사용해볼 수 있는 웹 애플리케이션입니다.<br>
-               아래 메뉴 또는 상단 네비게이션을 통해 원하는 기능을 사용해보세요.</p>
-        </section>
-
-        <div class="features-header">
-            <h2>주요 기능</h2>
-        </div>
-        
-        <section class="features">
-            <!-- 메뉴가 있는 경우 -->
-            <div th:if="${menus != null and !menus.isEmpty()}" 
-                 th:each="menu : ${menus}" 
-                 class="feature-card">
-                <a th:href="@{${menu.path}}" class="feature-link">
-                    <h3 th:text="${menu.name}">기능명</h3>
-                    <p th:if="${#strings.contains(menu.path, 'pdf-merge')}">
-                        여러 PDF 파일을 병합하고 순서를 조정합니다.
-                    </p>
-                    <p th:unless="${#strings.contains(menu.path, 'pdf-merge')}">
-                        기능을 바로 확인해보세요.
-                    </p>
-                    <span class="go-to">바로가기 &rarr;</span>
-                </a>
-            </div>
-            
-            <!-- 메뉴가 없는 경우 -->
-            <div th:unless="${menus != null and !menus.isEmpty()}" class="feature-card">
-                <h3>기능 없음</h3>
-                <p>현재 사용 가능한 기능이 없습니다. 관리자에게 문의하세요.</p>
-            </div>
-        </section>
+    <!-- 오프라인 인디케이터 -->
+    <div id="offlineIndicator" class="offline-indicator">
+        ⚠️ 오프라인 모드입니다. 일부 기능이 제한될 수 있습니다.
     </div>
+
+    <!-- PWA 설치 배너 -->
+    <div id="pwaInstallBanner" class="pwa-install-banner">
+        <div class="pwa-banner-content">
+            <h3>📱 앱으로 설치하기</h3>
+            <p>홈 화면에 추가하여 더 빠르고 편리하게 사용하세요</p>
+        </div>
+        <div class="pwa-banner-actions">
+            <button id="pwaInstallBtn" class="pwa-install-btn">설치</button>
+            <button id="pwaDismissBtn" class="pwa-dismiss-btn">나중에</button>
+        </div>
+    </div>
+
+    <!-- 네비게이션 바 (공통) -->
+    <nav class="navbar" th:fragment="navbar">
+        <div class="container">
+            <h1 class="logo">
+                <a th:href="@{/}" style="color: inherit; text-decoration: none;">Playground</a>
+            </h1>
+            <ul class="nav-menu">
+                <li th:each="menu : ${menus}">
+                    <a th:href="@{${menu.path}}" 
+                       th:text="${menu.name}"
+                       th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''">
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="container">
+        <div layout:fragment="content">
+            <!-- 페이지별 컨텐츠가 여기에 삽입됩니다 -->
+        </div>
+    </main>
+
+    <!-- 푸터 (공통) -->
+    <footer th:fragment="footer">
+        <div class="container">
+            <p>&copy; <span th:text="${#dates.year(#dates.createNow())}">2024</span> Playground. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- PWA 등록 스크립트 -->
+    <script>
+        // Service Worker 등록
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('✅ Service Worker registered:', registration.scope);
+                        
+                        // 업데이트 체크
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // 새 버전 사용 가능
+                                    if (confirm('새 버전이 있습니다. 지금 업데이트하시겠습니까?')) {
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch(error => {
+                        console.error('❌ Service Worker registration failed:', error);
+                    });
+            });
+        }
+        
+        // PWA 설치 프롬프트
+        let deferredPrompt;
+        const installBanner = document.getElementById('pwaInstallBanner');
+        const installBtn = document.getElementById('pwaInstallBtn');
+        const dismissBtn = document.getElementById('pwaDismissBtn');
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            
+            // 이전에 거부하지 않았다면 배너 표시
+            if (!localStorage.getItem('pwa-install-dismissed')) {
+                setTimeout(() => {
+                    installBanner.classList.add('show');
+                }, 2000);
+            }
+        });
+        
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            
+            console.log(`User response: ${outcome}`);
+            deferredPrompt = null;
+            installBanner.classList.remove('show');
+        });
+        
+        dismissBtn.addEventListener('click', () => {
+            installBanner.classList.remove('show');
+            localStorage.setItem('pwa-install-dismissed', 'true');
+        });
+        
+        // 설치 완료 이벤트
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ PWA installed successfully');
+            installBanner.classList.remove('show');
+            localStorage.setItem('pwa-installed', 'true');
+        });
+        
+        // 온라인/오프라인 상태 감지
+        const offlineIndicator = document.getElementById('offlineIndicator');
+        
+        window.addEventListener('online', () => {
+            console.log('🌐 Back online');
+            offlineIndicator.classList.remove('show');
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('📵 Offline mode');
+            offlineIndicator.classList.add('show');
+        });
+        
+        // 초기 상태 체크
+        if (!navigator.onLine) {
+            offlineIndicator.classList.add('show');
+        }
+        
+        // 페이지 가시성 변경 감지 (백그라운드/포그라운드)
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                console.log('👀 Page visible');
+                // 필요시 데이터 새로고침
+            }
+        });
+    </script>
+
+    <!-- 공통 JavaScript -->
+    <th:block layout:fragment="extra-js"></th:block>
 </body>
 </html>
