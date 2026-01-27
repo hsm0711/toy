@@ -20,23 +20,25 @@
     <!-- 네비게이션 바 (공통) -->
     <nav class="navbar" th:fragment="navbar">
         <div class="container">
+            <!-- 로고 영역 -->
             <h1 class="logo">
-                <a th:href="@{/}">Playground</a>
+                <a th:href="@{/}" aria-label="홈으로 가기">Playground</a>
             </h1>
             
-            <!-- 햄버거 메뉴 버튼 -->
-            <button class="menu-toggle" id="menuToggle" aria-label="메뉴 토글">
+            <!-- 햄버거 메뉴 버튼 (모바일) -->
+            <button class="menu-toggle" id="menuToggle" aria-label="메뉴 열기" aria-expanded="false">
                 <span></span>
                 <span></span>
                 <span></span>
             </button>
             
             <!-- 메뉴 리스트 -->
-            <ul class="nav-menu" id="navMenu">
+            <ul class="nav-menu" id="navMenu" role="navigation">
                 <li th:each="menu : ${menus}">
                     <a th:href="@{${menu.path}}" 
                        th:text="${menu.name}"
-                       th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''">
+                       th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''"
+                       th:attr="aria-current=${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'page' : null">
                     </a>
                 </li>
             </ul>
@@ -44,14 +46,14 @@
     </nav>
 
     <!-- 메인 컨텐츠 영역 -->
-    <main class="container">
+    <main class="container" role="main">
         <div layout:fragment="content">
             <!-- 페이지별 컨텐츠가 여기에 삽입됩니다 -->
         </div>
     </main>
 
     <!-- 푸터 (공통) -->
-    <footer th:fragment="footer">
+    <footer th:fragment="footer" role="contentinfo">
         <div class="container">
             <p>&copy; <span th:text="${#dates.year(#dates.createNow())}">2024</span> Playground. All rights reserved.</p>
         </div>
@@ -82,7 +84,7 @@
                 const menuLinks = navMenu.querySelectorAll('a');
                 menuLinks.forEach(link => {
                     link.addEventListener('click', function() {
-                        if (window.innerWidth <= 992) {
+                        if (window.innerWidth <= 768) {
                             closeMenu();
                         }
                     });
@@ -96,18 +98,34 @@
                 });
                 
                 // 윈도우 리사이즈 시 메뉴 상태 초기화
+                let resizeTimer;
                 window.addEventListener('resize', function() {
-                    if (window.innerWidth > 992) {
-                        closeMenu();
-                    }
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(function() {
+                        if (window.innerWidth > 768) {
+                            closeMenu();
+                        }
+                    }, 250);
                 });
             }
             
             function toggleMenu() {
-                menuToggle.classList.toggle('active');
-                navMenu.classList.toggle('active');
-                menuOverlay.classList.toggle('active');
-                body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
+                const isActive = menuToggle.classList.contains('active');
+                
+                if (isActive) {
+                    closeMenu();
+                } else {
+                    openMenu();
+                }
+            }
+            
+            function openMenu() {
+                menuToggle.classList.add('active');
+                navMenu.classList.add('active');
+                menuOverlay.classList.add('active');
+                body.style.overflow = 'hidden';
+                menuToggle.setAttribute('aria-expanded', 'true');
+                menuToggle.setAttribute('aria-label', '메뉴 닫기');
             }
             
             function closeMenu() {
@@ -115,19 +133,60 @@
                 navMenu.classList.remove('active');
                 menuOverlay.classList.remove('active');
                 body.style.overflow = '';
+                menuToggle.setAttribute('aria-expanded', 'false');
+                menuToggle.setAttribute('aria-label', '메뉴 열기');
             }
         });
         
         // 스크롤 시 네비게이션 바 그림자 효과
+        let lastScrollTop = 0;
         window.addEventListener('scroll', function() {
             const navbar = document.querySelector('.navbar');
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            
             if (navbar) {
-                if (window.scrollY > 10) {
+                if (scrollTop > 10) {
                     navbar.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
                 } else {
                     navbar.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
                 }
             }
+            
+            lastScrollTop = scrollTop;
+        }, { passive: true });
+        
+        // 메뉴 항목에 키보드 네비게이션 지원
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuItems = document.querySelectorAll('.nav-menu a');
+            
+            menuItems.forEach((item, index) => {
+                item.addEventListener('keydown', function(e) {
+                    let nextItem;
+                    
+                    switch(e.key) {
+                        case 'ArrowRight':
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            nextItem = menuItems[index + 1] || menuItems[0];
+                            nextItem.focus();
+                            break;
+                        case 'ArrowLeft':
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            nextItem = menuItems[index - 1] || menuItems[menuItems.length - 1];
+                            nextItem.focus();
+                            break;
+                        case 'Home':
+                            e.preventDefault();
+                            menuItems[0].focus();
+                            break;
+                        case 'End':
+                            e.preventDefault();
+                            menuItems[menuItems.length - 1].focus();
+                            break;
+                    }
+                });
+            });
         });
     </script>
     
