@@ -6,6 +6,7 @@
     <title>Timestamp 변환</title>
     <th:block layout:fragment="extra-css">
         <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
     </th:block>
 </head>
 <body>
@@ -16,22 +17,24 @@
                 <p class="description">Unix Timestamp와 날짜/시간을 상호 변환합니다.</p>
             </div>
 
-            <div class="current-time-box">
+            <div class="current-time-box card">
                 <h3>현재 시간</h3>
                 <div id="currentTimeDisplay">로딩 중...</div>
                 <button class="btn btn-secondary" onclick="refreshCurrentTime()" style="margin-top: 0.5rem;">새로고침</button>
             </div>
 
             <!-- Timestamp to DateTime -->
-            <div class="tool-section">
+            <div class="tool-section card">
                 <h3>Timestamp → 날짜/시간</h3>
                 <div class="input-group">
                     <label>Timestamp 입력</label>
                     <input type="number" id="timestampInput" placeholder="예: 1234567890">
                 </div>
                 <div class="checkbox-group">
-                    <input type="checkbox" id="isMillis">
-                    <label for="isMillis" style="margin-bottom: 0;">밀리초 단위</label>
+                    <div class="checkbox-item">
+                        <input type="checkbox" id="isMillis">
+                        <label for="isMillis">밀리초 단위</label>
+                    </div>
                 </div>
                 <div class="input-group">
                     <label>타임존 선택</label>
@@ -49,7 +52,7 @@
             </div>
 
             <!-- DateTime to Timestamp -->
-            <div class="tool-section">
+            <div class="tool-section card">
                 <h3>날짜/시간 → Timestamp</h3>
                 <div class="input-group">
                     <label>날짜/시간 입력</label>
@@ -66,23 +69,26 @@
                         <option value="Asia/Tokyo">JST (Asia/Tokyo)</option>
                     </select>
                 </div>
-                <div class="btn-row">
+                <div class="button-group">
                     <button class="btn btn-primary" onclick="convertFromDateTime()">변환하기</button>
                     <button class="btn btn-secondary" onclick="setNow()">현재 시간으로 설정</button>
                 </div>
                 <div id="result2" class="result-box"></div>
             </div>
+            
+            <div id="errorMessage" class="error-message"></div>
         </div>
     </div>
 
     <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
         <script>
             window.onload = function() { refreshCurrentTime(); };
 
             async function refreshCurrentTime() {
                 try {
-                    const response = await fetch('/timestamp/api/current?timezone=Asia/Seoul');
-                    const data = await response.json();
+                    const data = await ApiClient.get('/timestamp/api/current?timezone=Asia/Seoul');
                     if (data.success) {
                         document.getElementById('currentTimeDisplay').innerHTML = `
                             <strong>${data.readable}</strong><br>
@@ -92,6 +98,7 @@
                     }
                 } catch (error) {
                     console.error('현재 시간 조회 실패:', error);
+                    UiUtils.showError('현재 시간을 불러올 수 없습니다.');
                 }
             }
 
@@ -101,19 +108,21 @@
                 const isMillis = document.getElementById('isMillis').checked;
                 const resultDiv = document.getElementById('result1');
                 
-                if (!timestamp) {
-                    alert('Timestamp를 입력하세요.');
+                if (!ValidationUtils.validateRequired('timestampInput', 'Timestamp를 입력하세요.')) {
                     return;
                 }
                 
                 try {
-                    const response = await fetch('/timestamp/api/convert', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `timestamp=${timestamp}&timezone=${timezone}&isMillis=${isMillis}`
+                    UiUtils.hideError();
+                    const params = new URLSearchParams({
+                        timestamp: timestamp,
+                        timezone: timezone,
+                        isMillis: isMillis
                     });
                     
+                    const response = await fetch('/timestamp/api/convert?' + params, { method: 'POST' });
                     const data = await response.json();
+                    
                     if (data.success) {
                         resultDiv.innerHTML = `
                             <div class="result-item">
@@ -128,22 +137,14 @@
                                 <span class="result-label">읽기 쉬운 형식:</span>
                                 <span class="result-value">${data.readable}</span>
                             </div>
-                            <div class="result-item">
-                                <span class="result-label">Timestamp (초):</span>
-                                <span class="result-value">${data.timestampSeconds}</span>
-                            </div>
-                            <div class="result-item">
-                                <span class="result-label">Timestamp (밀리초):</span>
-                                <span class="result-value">${data.timestampMillis}</span>
-                            </div>
                         `;
-                        resultDiv.classList.add('show');
+                        UiUtils.show('result1');
                     } else {
-                        alert('변환 실패: ' + data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('변환 오류:', error);
-                    alert('변환 중 오류가 발생했습니다.');
+                    UiUtils.showError('변환 중 오류가 발생했습니다.');
                 }
             }
 
@@ -152,19 +153,20 @@
                 const timezone = document.getElementById('timezone2').value;
                 const resultDiv = document.getElementById('result2');
                 
-                if (!dateTime) {
-                    alert('날짜/시간을 입력하세요.');
+                if (!ValidationUtils.validateRequired('datetimeInput', '날짜/시간을 입력하세요.')) {
                     return;
                 }
                 
                 try {
-                    const response = await fetch('/timestamp/api/convert', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `dateTime=${dateTime}&timezone=${timezone}`
+                    UiUtils.hideError();
+                    const params = new URLSearchParams({
+                        dateTime: dateTime,
+                        timezone: timezone
                     });
                     
+                    const response = await fetch('/timestamp/api/convert?' + params, { method: 'POST' });
                     const data = await response.json();
+                    
                     if (data.success) {
                         resultDiv.innerHTML = `
                             <div class="result-item">
@@ -180,13 +182,13 @@
                                 <span class="result-value">${data.iso8601}</span>
                             </div>
                         `;
-                        resultDiv.classList.add('show');
+                        UiUtils.show('result2');
                     } else {
-                        alert('변환 실패: ' + data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('변환 오류:', error);
-                    alert('변환 중 오류가 발생했습니다.');
+                    UiUtils.showError('변환 중 오류가 발생했습니다.');
                 }
             }
 

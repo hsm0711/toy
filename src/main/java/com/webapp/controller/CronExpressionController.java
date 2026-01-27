@@ -1,6 +1,8 @@
 package com.webapp.controller;
 
 import com.webapp.service.MenuService;
+import com.webapp.util.ResponseUtils;
+import com.webapp.util.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -27,55 +29,33 @@ public class CronExpressionController {
     @PostMapping("/api/describe")
     @ResponseBody
     public Map<String, Object> describeCron(@RequestBody Map<String, String> request) {
-        Map<String, Object> result = new HashMap<>();
-        
         try {
             String expression = request.get("expression");
-            if (expression == null || expression.trim().isEmpty()) {
-                result.put("success", false);
-                result.put("message", "Cron 표현식을 입력하세요.");
-                return result;
+            
+            if (ValidationUtils.isEmpty(expression)) {
+                return ResponseUtils.failure("Cron 표현식을 입력하세요.");
             }
             
             String[] parts = expression.trim().split("\\s+");
             
             if (parts.length < 5 || parts.length > 6) {
-                result.put("success", false);
-                result.put("message", "올바른 Cron 표현식이 아닙니다. (5개 또는 6개 필드 필요)");
-                return result;
+                return ResponseUtils.failure("올바른 Cron 표현식이 아닙니다. (5개 또는 6개 필드 필요)");
             }
             
-            StringBuilder description = new StringBuilder();
+            String description = buildDescription(parts);
+            String type = parts.length == 6 ? "Spring Cron (6 fields)" : "Unix Cron (5 fields)";
             
-            // Spring Cron: 초 분 시 일 월 요일
-            if (parts.length == 6) {
-                description.append(describeField(parts[0], "초")).append(" ");
-                description.append(describeField(parts[1], "분")).append(" ");
-                description.append(describeField(parts[2], "시")).append(" ");
-                description.append(describeField(parts[3], "일")).append(" ");
-                description.append(describeField(parts[4], "월")).append(" ");
-                description.append(describeField(parts[5], "요일"));
-            } else {
-                // Unix Cron: 분 시 일 월 요일
-                description.append(describeField(parts[0], "분")).append(" ");
-                description.append(describeField(parts[1], "시")).append(" ");
-                description.append(describeField(parts[2], "일")).append(" ");
-                description.append(describeField(parts[3], "월")).append(" ");
-                description.append(describeField(parts[4], "요일"));
-            }
-            
-            result.put("success", true);
-            result.put("description", description.toString());
-            result.put("expression", expression);
-            result.put("type", parts.length == 6 ? "Spring Cron (6 fields)" : "Unix Cron (5 fields)");
+            return ResponseUtils.builder()
+                .message("분석 완료")
+                .put("expression", expression)
+                .put("type", type)
+                .put("description", description)
+                .build();
             
         } catch (Exception e) {
             log.error("Cron 표현식 분석 오류", e);
-            result.put("success", false);
-            result.put("message", "분석 오류: " + e.getMessage());
+            return ResponseUtils.failure("분석 오류", e);
         }
-        
-        return result;
     }
     
     @PostMapping("/api/generate")
@@ -89,41 +69,50 @@ public class CronExpressionController {
             @RequestParam(required = false) String month,
             @RequestParam(required = false) String weekday) {
         
-        Map<String, Object> result = new HashMap<>();
-        
         try {
             String expression;
             
             if ("spring".equals(type)) {
-                expression = String.format("%s %s %s %s %s %s",
-                    second != null && !second.isEmpty() ? second : "*",
-                    minute != null && !minute.isEmpty() ? minute : "*",
-                    hour != null && !hour.isEmpty() ? hour : "*",
-                    day != null && !day.isEmpty() ? day : "*",
-                    month != null && !month.isEmpty() ? month : "*",
-                    weekday != null && !weekday.isEmpty() ? weekday : "*"
-                );
+                expression = buildSpringCron(second, minute, hour, day, month, weekday);
             } else {
-                expression = String.format("%s %s %s %s %s",
-                    minute != null && !minute.isEmpty() ? minute : "*",
-                    hour != null && !hour.isEmpty() ? hour : "*",
-                    day != null && !day.isEmpty() ? day : "*",
-                    month != null && !month.isEmpty() ? month : "*",
-                    weekday != null && !weekday.isEmpty() ? weekday : "*"
-                );
+                expression = buildUnixCron(minute, hour, day, month, weekday);
             }
             
-            result.put("success", true);
-            result.put("expression", expression);
-            result.put("type", type);
+            return ResponseUtils.builder()
+                .message("생성 완료")
+                .put("expression", expression)
+                .put("type", type)
+                .build();
             
         } catch (Exception e) {
             log.error("Cron 표현식 생성 오류", e);
-            result.put("success", false);
-            result.put("message", "생성 오류: " + e.getMessage());
+            return ResponseUtils.failure("생성 오류", e);
+        }
+    }
+    
+    // Private helper methods
+    
+    private String buildDescription(String[] parts) {
+        StringBuilder description = new StringBuilder();
+        
+        if (parts.length == 6) {
+            // Spring Cron: 초 분 시 일 월 요일
+            description.append(describeField(parts[0], "초")).append(" ");
+            description.append(describeField(parts[1], "분")).append(" ");
+            description.append(describeField(parts[2], "시")).append(" ");
+            description.append(describeField(parts[3], "일")).append(" ");
+            description.append(describeField(parts[4], "월")).append(" ");
+            description.append(describeField(parts[5], "요일"));
+        } else {
+            // Unix Cron: 분 시 일 월 요일
+            description.append(describeField(parts[0], "분")).append(" ");
+            description.append(describeField(parts[1], "시")).append(" ");
+            description.append(describeField(parts[2], "일")).append(" ");
+            description.append(describeField(parts[3], "월")).append(" ");
+            description.append(describeField(parts[4], "요일"));
         }
         
-        return result;
+        return description.toString();
     }
     
     private String describeField(String value, String fieldName) {
@@ -140,5 +129,32 @@ public class CronExpressionController {
         } else {
             return fieldName + " " + value;
         }
+    }
+    
+    private String buildSpringCron(String second, String minute, String hour, 
+                                   String day, String month, String weekday) {
+        return String.format("%s %s %s %s %s %s",
+            defaultIfEmpty(second, "*"),
+            defaultIfEmpty(minute, "*"),
+            defaultIfEmpty(hour, "*"),
+            defaultIfEmpty(day, "*"),
+            defaultIfEmpty(month, "*"),
+            defaultIfEmpty(weekday, "*")
+        );
+    }
+    
+    private String buildUnixCron(String minute, String hour, String day, 
+                                 String month, String weekday) {
+        return String.format("%s %s %s %s %s",
+            defaultIfEmpty(minute, "*"),
+            defaultIfEmpty(hour, "*"),
+            defaultIfEmpty(day, "*"),
+            defaultIfEmpty(month, "*"),
+            defaultIfEmpty(weekday, "*")
+        );
+    }
+    
+    private String defaultIfEmpty(String value, String defaultValue) {
+        return ValidationUtils.isEmpty(value) ? defaultValue : value;
     }
 }

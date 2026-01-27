@@ -6,14 +6,7 @@
     <title>IP 계산기</title>
     <th:block layout:fragment="extra-css">
         <link rel="stylesheet" th:href="@{/css/tool-page.css}">
-        <style>
-            .examples {
-                background: #e7f3ff;
-            }
-            .examples h4 {
-                color: #004085;
-            }
-        </style>
+        <link rel="stylesheet" th:href="@{/css/components.css}">
     </th:block>
 </head>
 <body>
@@ -24,7 +17,7 @@
                 <p class="description">CIDR 표기법으로 IP 범위와 서브넷 정보를 계산합니다.</p>
             </div>
 
-            <div class="tool-section">
+            <div class="tool-section card">
                 <div class="input-group">
                     <label>CIDR 표기법</label>
                     <input type="text" id="cidrInput" placeholder="예: 192.168.1.0/24">
@@ -80,8 +73,8 @@
                 </div>
             </div>
 
-            <div class="examples">
-                <h4>자주 사용하는 CIDR 예제 (클릭하여 입력)</h4>
+            <div class="examples" style="background: #e7f3ff;">
+                <h4 style="color: #004085;">자주 사용하는 CIDR 예제 (클릭하여 입력)</h4>
                 <div class="example-item" onclick="fillExample('192.168.1.0/24')">192.168.1.0/24 - Class C 사설망</div>
                 <div class="example-item" onclick="fillExample('10.0.0.0/8')">10.0.0.0/8 - Class A 사설망</div>
                 <div class="example-item" onclick="fillExample('172.16.0.0/12')">172.16.0.0/12 - Class B 사설망</div>
@@ -89,36 +82,34 @@
                 <div class="example-item" onclick="fillExample('192.168.1.0/28')">192.168.1.0/28 - 소형 서브넷 (16개 주소)</div>
                 <div class="example-item" onclick="fillExample('192.168.1.0/30')">192.168.1.0/30 - Point-to-Point (4개 주소)</div>
             </div>
+            
+            <div id="errorMessage" class="error-message"></div>
         </div>
     </div>
 
     <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
         <script>
             async function calculateCidr() {
                 const cidr = document.getElementById('cidrInput').value;
                 
-                if (!cidr) {
-                    alert('CIDR 표기법을 입력하세요.');
+                if (!ValidationUtils.validateRequired('cidrInput', 'CIDR 표기법을 입력하세요.')) {
                     return;
                 }
                 
                 try {
-                    const response = await fetch('/ip-calculator/api/calculate', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ cidr: cidr })
-                    });
-                    
-                    const data = await response.json();
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/ip-calculator/api/calculate', { cidr: cidr });
                     
                     if (data.success) {
                         displayResults(data);
                     } else {
-                        alert(data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('계산 오류:', error);
-                    alert('계산 중 오류가 발생했습니다.');
+                    UiUtils.showError('계산 중 오류가 발생했습니다.');
                 }
             }
 
@@ -131,8 +122,8 @@
                 document.getElementById('broadcastAddress').textContent = data.broadcastAddress;
                 document.getElementById('firstHost').textContent = data.firstHost;
                 document.getElementById('lastHost').textContent = data.lastHost;
-                document.getElementById('totalHosts').textContent = data.totalHosts.toLocaleString();
-                document.getElementById('usableHosts').textContent = data.usableHosts.toLocaleString();
+                document.getElementById('totalHosts').textContent = FormatUtils.formatNumber(data.totalHosts);
+                document.getElementById('usableHosts').textContent = FormatUtils.formatNumber(data.usableHosts);
                 
                 const ipTypeBadge = document.getElementById('ipTypeBadge');
                 let badgeClass = 'public';
@@ -141,7 +132,7 @@
                 
                 ipTypeBadge.innerHTML = `<span class="ip-type-badge ${badgeClass}">${data.ipType}</span>`;
                 
-                document.getElementById('resultArea').style.display = 'block';
+                UiUtils.show('resultArea');
             }
 
             function fillExample(cidr) {

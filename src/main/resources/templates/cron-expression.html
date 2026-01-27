@@ -6,15 +6,10 @@
     <title>Cron Expression 분석기</title>
     <th:block layout:fragment="extra-css">
         <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
         <style>
             .result-value {
                 white-space: pre-wrap;
-            }
-            .examples {
-                background: #d1ecf1;
-            }
-            .examples h4 {
-                color: #0c5460;
             }
         </style>
     </th:block>
@@ -28,7 +23,7 @@
             </div>
 
             <!-- Cron Expression Parser -->
-            <div class="tool-section">
+            <div class="tool-section card">
                 <h3>Cron 표현식 → 한글 설명</h3>
                 <div class="input-group">
                     <label>Cron 표현식 입력</label>
@@ -37,17 +32,23 @@
                 </div>
                 <button class="btn btn-primary" onclick="describeCron()">분석하기</button>
                 <div id="describeResult" class="result-box">
-                    <div class="result-label">표현식</div>
-                    <div class="result-value" id="resultExpression"></div>
-                    <div class="result-label">타입</div>
-                    <div class="result-value" id="resultType"></div>
-                    <div class="result-label">설명</div>
-                    <div class="result-value" id="resultDescription"></div>
+                    <div class="result-item">
+                        <div class="result-label">표현식</div>
+                        <div class="result-value" id="resultExpression"></div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">타입</div>
+                        <div class="result-value" id="resultType"></div>
+                    </div>
+                    <div class="result-item">
+                        <div class="result-label">설명</div>
+                        <div class="result-value" id="resultDescription"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- Cron Expression Generator -->
-            <div class="tool-section">
+            <div class="tool-section card">
                 <h3>Cron 표현식 생성기</h3>
                 <div class="input-group">
                     <label>타입 선택</label>
@@ -90,24 +91,30 @@
                 
                 <button class="btn btn-primary" onclick="generateCron()">생성하기</button>
                 <div id="generateResult" class="result-box">
-                    <div class="result-label">생성된 Cron 표현식</div>
-                    <div class="result-value" id="generatedExpression"></div>
+                    <div class="result-item">
+                        <div class="result-label">생성된 Cron 표현식</div>
+                        <div class="result-value" id="generatedExpression"></div>
+                    </div>
                 </div>
             </div>
 
             <!-- Examples -->
-            <div class="examples">
-                <h4>자주 사용하는 Cron 표현식 예제</h4>
+            <div class="examples" style="background: #d1ecf1;">
+                <h4 style="color: #0c5460;">자주 사용하는 Cron 표현식 예제</h4>
                 <div class="example-item" onclick="fillCronExample('0 0 12 * * ?')">0 0 12 * * ? - 매일 정오 12시</div>
                 <div class="example-item" onclick="fillCronExample('0 */15 * * * ?')">0 */15 * * * ? - 15분마다</div>
                 <div class="example-item" onclick="fillCronExample('0 0 9-18 * * MON-FRI')">0 0 9-18 * * MON-FRI - 평일 9시~18시 매 정각</div>
                 <div class="example-item" onclick="fillCronExample('0 0 0 1 * ?')">0 0 0 1 * ? - 매월 1일 자정</div>
                 <div class="example-item" onclick="fillCronExample('0 0 2 * * SUN')">0 0 2 * * SUN - 매주 일요일 새벽 2시</div>
             </div>
+            
+            <div id="errorMessage" class="error-message"></div>
         </div>
     </div>
 
     <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
         <script>
             function toggleSecondField() {
                 const cronType = document.getElementById('cronType').value;
@@ -118,33 +125,25 @@
             async function describeCron() {
                 const expression = document.getElementById('cronInput').value;
                 
-                if (!expression) {
-                    alert('Cron 표현식을 입력하세요.');
+                if (!ValidationUtils.validateRequired('cronInput', 'Cron 표현식을 입력하세요.')) {
                     return;
                 }
                 
                 try {
-                    const response = await fetch('/cron-expression/api/describe', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ expression: expression })
-                    });
-                    
-                    const data = await response.json();
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/cron-expression/api/describe', { expression: expression });
                     
                     if (data.success) {
                         document.getElementById('resultExpression').textContent = data.expression;
                         document.getElementById('resultType').textContent = data.type;
                         document.getElementById('resultDescription').textContent = data.description;
-                        document.getElementById('describeResult').classList.add('show');
+                        UiUtils.show('describeResult');
                     } else {
-                        alert(data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('분석 오류:', error);
-                    alert('분석 중 오류가 발생했습니다.');
+                    UiUtils.showError('분석 중 오류가 발생했습니다.');
                 }
             }
 
@@ -158,6 +157,7 @@
                 const weekday = document.getElementById('weekday').value;
                 
                 try {
+                    UiUtils.hideError();
                     const params = new URLSearchParams({
                         type: type,
                         second: second || '',
@@ -176,13 +176,13 @@
                     
                     if (data.success) {
                         document.getElementById('generatedExpression').textContent = data.expression;
-                        document.getElementById('generateResult').classList.add('show');
+                        UiUtils.show('generateResult');
                     } else {
-                        alert(data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('생성 오류:', error);
-                    alert('생성 중 오류가 발생했습니다.');
+                    UiUtils.showError('생성 중 오류가 발생했습니다.');
                 }
             }
 

@@ -6,21 +6,8 @@
     <title>UUID / 랜덤 문자열 생성기</title>
     <th:block layout:fragment="extra-css">
         <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
         <style>
-            .checkbox-group {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 1rem;
-                margin-bottom: 1rem;
-            }
-            .checkbox-item {
-                display: flex;
-                align-items: center;
-                gap: 0.5rem;
-            }
-            .checkbox-item input[type="checkbox"] {
-                width: auto;
-            }
             .result-item {
                 background: white;
                 padding: 0.75rem;
@@ -31,9 +18,6 @@
                 justify-content: space-between;
                 align-items: center;
                 border: 1px solid #dee2e6;
-            }
-            .result-item:last-child {
-                margin-bottom: 0;
             }
             .copy-single-btn {
                 padding: 0.25rem 0.75rem;
@@ -74,7 +58,7 @@
             </div>
 
             <!-- UUID Generator -->
-            <div class="tool-section">
+            <div class="tool-section card">
                 <h3>UUID v4 생성</h3>
                 <div class="input-group">
                     <label>생성 개수 (1-100)</label>
@@ -85,7 +69,7 @@
             </div>
 
             <!-- Random String Generator -->
-            <div class="tool-section">
+            <div class="tool-section card">
                 <h3>랜덤 문자열 생성</h3>
                 <div class="input-group">
                     <label>문자열 길이: <span class="range-value" id="lengthDisplay">16</span></label>
@@ -96,19 +80,19 @@
                     <div class="checkbox-group">
                         <div class="checkbox-item">
                             <input type="checkbox" id="includeDigits" checked>
-                            <label for="includeDigits" style="margin-bottom: 0;">숫자 (0-9)</label>
+                            <label for="includeDigits">숫자 (0-9)</label>
                         </div>
                         <div class="checkbox-item">
                             <input type="checkbox" id="includeLowercase" checked>
-                            <label for="includeLowercase" style="margin-bottom: 0;">소문자 (a-z)</label>
+                            <label for="includeLowercase">소문자 (a-z)</label>
                         </div>
                         <div class="checkbox-item">
                             <input type="checkbox" id="includeUppercase" checked>
-                            <label for="includeUppercase" style="margin-bottom: 0;">대문자 (A-Z)</label>
+                            <label for="includeUppercase">대문자 (A-Z)</label>
                         </div>
                         <div class="checkbox-item">
                             <input type="checkbox" id="includeSpecial">
-                            <label for="includeSpecial" style="margin-bottom: 0;">특수문자</label>
+                            <label for="includeSpecial">특수문자</label>
                         </div>
                     </div>
                 </div>
@@ -119,10 +103,14 @@
                 <button class="btn btn-primary" onclick="generateRandomStrings()">문자열 생성</button>
                 <div id="stringResult" class="results-box" style="display: none;"></div>
             </div>
+            
+            <div id="errorMessage" class="error-message"></div>
         </div>
     </div>
 
     <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
         <script>
             function updateLengthDisplay() {
                 const length = document.getElementById('stringLength').value;
@@ -134,27 +122,27 @@
                 const resultDiv = document.getElementById('uuidResult');
                 
                 try {
-                    const response = await fetch(`/uuid-generator/api/uuid?count=${count}`);
-                    const data = await response.json();
+                    UiUtils.hideError();
+                    const data = await ApiClient.get(`/uuid-generator/api/uuid?count=${count}`);
                     
                     if (data.success) {
                         let html = '';
-                        data.uuids.forEach((uuid, index) => {
+                        data.uuids.forEach((uuid) => {
                             html += `
                                 <div class="result-item">
                                     <span>${uuid}</span>
-                                    <button class="copy-single-btn" onclick="copySingle('${uuid}')">복사</button>
+                                    <button class="copy-single-btn" onclick="ClipboardUtils.copy('${uuid}')">복사</button>
                                 </div>
                             `;
                         });
                         resultDiv.innerHTML = html;
-                        resultDiv.style.display = 'block';
+                        UiUtils.show('uuidResult');
                     } else {
-                        alert(data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('UUID 생성 오류:', error);
-                    alert('생성 중 오류가 발생했습니다.');
+                    UiUtils.showError('생성 중 오류가 발생했습니다.');
                 }
             }
 
@@ -168,6 +156,7 @@
                 const resultDiv = document.getElementById('stringResult');
                 
                 try {
+                    UiUtils.hideError();
                     const params = new URLSearchParams({
                         length: length,
                         count: count,
@@ -184,31 +173,23 @@
                     
                     if (data.success) {
                         let html = '';
-                        data.strings.forEach((str, index) => {
+                        data.strings.forEach((str) => {
                             html += `
                                 <div class="result-item">
-                                    <span>${str}</span>
-                                    <button class="copy-single-btn" onclick="copySingle('${str}')">복사</button>
+                                    <span>${HtmlUtils.escape(str)}</span>
+                                    <button class="copy-single-btn" onclick="ClipboardUtils.copy('${HtmlUtils.escape(str)}')">복사</button>
                                 </div>
                             `;
                         });
                         resultDiv.innerHTML = html;
-                        resultDiv.style.display = 'block';
+                        UiUtils.show('stringResult');
                     } else {
-                        alert(data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('랜덤 문자열 생성 오류:', error);
-                    alert('생성 중 오류가 발생했습니다.');
+                    UiUtils.showError('생성 중 오류가 발생했습니다.');
                 }
-            }
-
-            function copySingle(text) {
-                navigator.clipboard.writeText(text).then(() => {
-                    alert('복사했습니다!');
-                }).catch(err => {
-                    console.error('복사 실패:', err);
-                });
             }
         </script>
     </th:block>

@@ -5,13 +5,14 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.fasterxml.jackson.dataformat.yaml.YAMLGenerator;
 import com.webapp.service.MenuService;
+import com.webapp.util.ResponseUtils;
+import com.webapp.util.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
@@ -38,89 +39,67 @@ public class JsonYamlController {
     @PostMapping("/api/json-to-yaml")
     @ResponseBody
     public Map<String, Object> jsonToYaml(@RequestBody Map<String, String> request) {
-        Map<String, Object> result = new HashMap<>();
-        
         try {
             String json = request.get("input");
-            if (json == null || json.trim().isEmpty()) {
-                result.put("success", false);
-                result.put("message", "JSON 데이터를 입력하세요.");
-                return result;
+            
+            if (ValidationUtils.isEmpty(json)) {
+                return ResponseUtils.failure("JSON 데이터를 입력하세요.");
             }
             
             Object jsonObject = jsonMapper.readValue(json, Object.class);
             String yaml = yamlMapper.writeValueAsString(jsonObject);
             
-            result.put("success", true);
-            result.put("result", yaml);
+            return ResponseUtils.success("변환 완료", "result", yaml);
             
         } catch (Exception e) {
             log.error("JSON to YAML 변환 오류", e);
-            result.put("success", false);
-            result.put("message", "변환 오류: " + e.getMessage());
-            result.put("details", getErrorDetails(e));
+            return ResponseUtils.failure("변환 오류: " + e.getMessage(), getErrorDetails(e));
         }
-        
-        return result;
     }
     
     @PostMapping("/api/yaml-to-json")
     @ResponseBody
     public Map<String, Object> yamlToJson(@RequestBody Map<String, String> request) {
-        Map<String, Object> result = new HashMap<>();
-        
         try {
             String yaml = request.get("input");
-            if (yaml == null || yaml.trim().isEmpty()) {
-                result.put("success", false);
-                result.put("message", "YAML 데이터를 입력하세요.");
-                return result;
+            
+            if (ValidationUtils.isEmpty(yaml)) {
+                return ResponseUtils.failure("YAML 데이터를 입력하세요.");
             }
             
             Object yamlObject = yamlMapper.readValue(yaml, Object.class);
             String json = jsonMapper.writeValueAsString(yamlObject);
             
-            result.put("success", true);
-            result.put("result", json);
+            return ResponseUtils.success("변환 완료", "result", json);
             
         } catch (Exception e) {
             log.error("YAML to JSON 변환 오류", e);
-            result.put("success", false);
-            result.put("message", "변환 오류: " + e.getMessage());
-            result.put("details", getErrorDetails(e));
+            return ResponseUtils.failure("변환 오류: " + e.getMessage(), getErrorDetails(e));
         }
-        
-        return result;
     }
     
     @PostMapping("/api/format-json")
     @ResponseBody
     public Map<String, Object> formatJson(@RequestBody Map<String, String> request) {
-        Map<String, Object> result = new HashMap<>();
-        
         try {
             String json = request.get("input");
-            if (json == null || json.trim().isEmpty()) {
-                result.put("success", false);
-                result.put("message", "JSON 데이터를 입력하세요.");
-                return result;
+            
+            if (ValidationUtils.isEmpty(json)) {
+                return ResponseUtils.failure("JSON 데이터를 입력하세요.");
             }
             
             Object jsonObject = jsonMapper.readValue(json, Object.class);
             String formatted = jsonMapper.writeValueAsString(jsonObject);
             
-            result.put("success", true);
-            result.put("result", formatted);
+            return ResponseUtils.success("포맷팅 완료", "result", formatted);
             
         } catch (Exception e) {
             log.error("JSON 포맷팅 오류", e);
-            result.put("success", false);
-            result.put("message", "포맷팅 오류: " + e.getMessage());
-            result.put("details", getErrorDetails(e));
+            return ResponseUtils.failure("포맷팅 오류: " + e.getMessage(), getErrorDetails(e));
         }
-        
-        return result;
     }
+    
+    // Private helper method
     
     private String getErrorDetails(Exception e) {
         String message = e.getMessage();

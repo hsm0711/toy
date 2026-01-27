@@ -6,14 +6,7 @@
     <title>포트/URL 체크</title>
     <th:block layout:fragment="extra-css">
         <link rel="stylesheet" th:href="@{/css/tool-page.css}">
-        <style>
-            .examples {
-                background: #fff3cd;
-            }
-            .examples h4 {
-                color: #856404;
-            }
-        </style>
+        <link rel="stylesheet" th:href="@{/css/components.css}">
     </th:block>
 </head>
 <body>
@@ -25,7 +18,7 @@
             </div>
 
             <!-- Port Check -->
-            <div class="tool-section">
+            <div class="tool-section card">
                 <h3>포트 체크</h3>
                 <div class="input-row">
                     <div class="input-group">
@@ -47,7 +40,7 @@
             </div>
 
             <!-- URL Health Check -->
-            <div class="tool-section">
+            <div class="tool-section card">
                 <h3>URL 헬스체크</h3>
                 <div class="input-group">
                     <label>URL</label>
@@ -62,18 +55,22 @@
                 <div id="urlResult" class="result-box"></div>
             </div>
 
-            <div class="examples">
-                <h4>자주 사용하는 포트</h4>
+            <div class="examples" style="background: #fff3cd;">
+                <h4 style="color: #856404;">자주 사용하는 포트</h4>
                 <div class="example-item">HTTP: 80, HTTPS: 443</div>
                 <div class="example-item">SSH: 22, FTP: 21, Telnet: 23</div>
                 <div class="example-item">SMTP: 25, POP3: 110, IMAP: 143</div>
                 <div class="example-item">MySQL: 3306, PostgreSQL: 5432, MongoDB: 27017</div>
                 <div class="example-item">Redis: 6379, RabbitMQ: 5672</div>
             </div>
+            
+            <div id="errorMessage" class="error-message"></div>
         </div>
     </div>
 
     <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
         <script>
             async function checkPort() {
                 const host = document.getElementById('portHost').value;
@@ -82,22 +79,26 @@
                 const resultDiv = document.getElementById('portResult');
                 const loadingDiv = document.getElementById('portLoading');
                 
-                if (!host || !port) {
-                    alert('호스트와 포트를 입력하세요.');
+                if (!ValidationUtils.validateRequired('portHost', '호스트를 입력하세요.')) {
                     return;
                 }
                 
-                loadingDiv.classList.add('show');
-                resultDiv.classList.remove('show');
+                if (!ValidationUtils.validateRequired('portNumber', '포트를 입력하세요.')) {
+                    return;
+                }
+                
+                if (!ValidationUtils.validateRange(port, 1, 65535)) {
+                    UiUtils.showError('포트는 1~65535 사이여야 합니다.');
+                    return;
+                }
+                
+                UiUtils.hideError();
+                UiUtils.showLoading('portLoading');
+                UiUtils.hide('portResult');
                 
                 try {
-                    const response = await fetch('/health-check/api/port-check', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `host=${encodeURIComponent(host)}&port=${port}&timeout=${timeout}`
-                    });
-                    
-                    const data = await response.json();
+                    const params = new URLSearchParams({ host, port, timeout });
+                    const data = await ApiClient.postForm('/health-check/api/port-check', params);
                     
                     if (data.success) {
                         const statusClass = data.isOpen ? 'status-open' : 'status-closed';
@@ -115,15 +116,15 @@
                                 <span class="result-value">${data.responseTime} ms</span>
                             </div>
                         `;
-                        resultDiv.classList.add('show');
+                        UiUtils.show('portResult');
                     } else {
-                        alert('체크 실패: ' + data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('포트 체크 오류:', error);
-                    alert('체크 중 오류가 발생했습니다.');
+                    UiUtils.showError('체크 중 오류가 발생했습니다.');
                 } finally {
-                    loadingDiv.classList.remove('show');
+                    UiUtils.hideLoading('portLoading');
                 }
             }
 
@@ -133,29 +134,24 @@
                 const resultDiv = document.getElementById('urlResult');
                 const loadingDiv = document.getElementById('urlLoading');
                 
-                if (!url) {
-                    alert('URL을 입력하세요.');
+                if (!ValidationUtils.validateRequired('urlInput', 'URL을 입력하세요.')) {
                     return;
                 }
                 
-                loadingDiv.classList.add('show');
-                resultDiv.classList.remove('show');
+                UiUtils.hideError();
+                UiUtils.showLoading('urlLoading');
+                UiUtils.hide('urlResult');
                 
                 try {
-                    const response = await fetch('/health-check/api/url-check', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: `url=${encodeURIComponent(url)}&timeout=${timeout}`
-                    });
-                    
-                    const data = await response.json();
+                    const params = new URLSearchParams({ url, timeout });
+                    const data = await ApiClient.postForm('/health-check/api/url-check', params);
                     
                     if (data.success) {
                         const statusClass = data.isSuccess ? 'status-success' : 'status-error';
                         resultDiv.innerHTML = `
                             <div class="result-item">
                                 <span class="result-label">URL</span>
-                                <span class="result-value">${data.url}</span>
+                                <span class="result-value">${HtmlUtils.escape(data.url)}</span>
                             </div>
                             <div class="result-item">
                                 <span class="result-label">HTTP 상태</span>
@@ -163,22 +159,22 @@
                             </div>
                             <div class="result-item">
                                 <span class="result-label">상태 텍스트</span>
-                                <span class="result-value">${data.statusText}</span>
+                                <span class="result-value">${HtmlUtils.escape(data.statusText)}</span>
                             </div>
                             <div class="result-item">
                                 <span class="result-label">응답 시간</span>
                                 <span class="result-value">${data.responseTime} ms</span>
                             </div>
                         `;
-                        resultDiv.classList.add('show');
+                        UiUtils.show('urlResult');
                     } else {
-                        alert('체크 실패: ' + data.message);
+                        UiUtils.showError(data.message);
                     }
                 } catch (error) {
                     console.error('URL 체크 오류:', error);
-                    alert('체크 중 오류가 발생했습니다.');
+                    UiUtils.showError('체크 중 오류가 발생했습니다.');
                 } finally {
-                    loadingDiv.classList.remove('show');
+                    UiUtils.hideLoading('urlLoading');
                 }
             }
         </script>

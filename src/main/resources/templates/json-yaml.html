@@ -6,6 +6,7 @@
     <title>JSON ↔ YAML 변환</title>
     <th:block layout:fragment="extra-css">
         <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
         <style>
             .tool-container {
                 max-width: 1200px;
@@ -41,12 +42,6 @@
                 font-family: 'Courier New', monospace;
                 resize: vertical;
             }
-            .examples {
-                background: #e7f3ff;
-            }
-            .examples h4 {
-                color: #004085;
-            }
             @media (max-width: 768px) {
                 .converter-layout {
                     grid-template-columns: 1fr;
@@ -69,154 +64,124 @@
                     <div class="panel-header">
                         <h3>JSON</h3>
                         <div>
-                            <button class="format-btn" onclick="formatJson()">포맷팅</button>
-                            <button class="clear-btn" onclick="clearJson()">Clear</button>
+                            <button class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="formatJson()">포맷팅</button>
+                            <button class="clear-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="clearJson()">Clear</button>
                         </div>
                     </div>
                     <div class="text-area-group">
                         <textarea id="jsonInput" placeholder='{"key": "value"}'></textarea>
                     </div>
-                    <button class="copy-btn" onclick="copyToClipboard('jsonInput')">📋 복사하기</button>
+                    <button class="copy-btn" onclick="ClipboardUtils.copyFromElement('jsonInput')">📋 복사하기</button>
                 </div>
 
                 <!-- YAML Panel -->
                 <div class="converter-panel">
                     <div class="panel-header">
                         <h3>YAML</h3>
-                        <button class="clear-btn" onclick="clearYaml()">Clear</button>
+                        <button class="clear-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;" onclick="clearYaml()">Clear</button>
                     </div>
                     <div class="text-area-group">
                         <textarea id="yamlInput" placeholder="key: value"></textarea>
                     </div>
-                    <button class="copy-btn" onclick="copyToClipboard('yamlInput')">📋 복사하기</button>
+                    <button class="copy-btn" onclick="ClipboardUtils.copyFromElement('yamlInput')">📋 복사하기</button>
                 </div>
             </div>
 
-            <div class="button-group">
+            <div class="button-group" style="justify-content: center; margin: 2rem 0;">
                 <button class="btn btn-primary" onclick="jsonToYaml()">JSON → YAML</button>
                 <button class="btn btn-primary" onclick="yamlToJson()">YAML → JSON</button>
             </div>
 
-            <div id="errorMessage" class="error-message"></div>
-
-            <div class="examples">
-                <h4>자주 사용하는 예제 (클릭하여 입력)</h4>
+            <div class="examples" style="background: #e7f3ff;">
+                <h4 style="color: #004085;">자주 사용하는 예제 (클릭하여 입력)</h4>
                 <div class="example-item" onclick="fillJsonExample1()">간단한 JSON 객체</div>
                 <div class="example-item" onclick="fillJsonExample2()">배열을 포함한 JSON</div>
                 <div class="example-item" onclick="fillYamlExample()">YAML 설정 파일 예제</div>
             </div>
+            
+            <div id="errorMessage" class="error-message"></div>
         </div>
     </div>
 
     <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
         <script>
             async function jsonToYaml() {
                 const json = document.getElementById('jsonInput').value;
-                if (!json) {
-                    showError('JSON 데이터를 입력하세요.');
+                
+                if (!ValidationUtils.validateRequired('jsonInput', 'JSON 데이터를 입력하세요.')) {
                     return;
                 }
                 
                 try {
-                    const response = await fetch('/json-yaml/api/json-to-yaml', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ input: json })
-                    });
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/json-yaml/api/json-to-yaml', { input: json });
                     
-                    const data = await response.json();
                     if (data.success) {
                         document.getElementById('yamlInput').value = data.result;
-                        hideError();
                     } else {
-                        showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
+                        UiUtils.showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
                     }
                 } catch (error) {
                     console.error('변환 오류:', error);
-                    showError('변환 중 오류가 발생했습니다.');
+                    UiUtils.showError('변환 중 오류가 발생했습니다.');
                 }
             }
 
             async function yamlToJson() {
                 const yaml = document.getElementById('yamlInput').value;
-                if (!yaml) {
-                    showError('YAML 데이터를 입력하세요.');
+                
+                if (!ValidationUtils.validateRequired('yamlInput', 'YAML 데이터를 입력하세요.')) {
                     return;
                 }
                 
                 try {
-                    const response = await fetch('/json-yaml/api/yaml-to-json', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ input: yaml })
-                    });
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/json-yaml/api/yaml-to-json', { input: yaml });
                     
-                    const data = await response.json();
                     if (data.success) {
                         document.getElementById('jsonInput').value = data.result;
-                        hideError();
                     } else {
-                        showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
+                        UiUtils.showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
                     }
                 } catch (error) {
                     console.error('변환 오류:', error);
-                    showError('변환 중 오류가 발생했습니다.');
+                    UiUtils.showError('변환 중 오류가 발생했습니다.');
                 }
             }
 
             async function formatJson() {
                 const json = document.getElementById('jsonInput').value;
-                if (!json) {
-                    showError('JSON 데이터를 입력하세요.');
+                
+                if (!ValidationUtils.validateRequired('jsonInput', 'JSON 데이터를 입력하세요.')) {
                     return;
                 }
                 
                 try {
-                    const response = await fetch('/json-yaml/api/format-json', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ input: json })
-                    });
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/json-yaml/api/format-json', { input: json });
                     
-                    const data = await response.json();
                     if (data.success) {
                         document.getElementById('jsonInput').value = data.result;
-                        hideError();
+                        UiUtils.showSuccess('포맷팅 완료!');
                     } else {
-                        showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
+                        UiUtils.showError(data.message + (data.details ? '\n\n상세: ' + data.details : ''));
                     }
                 } catch (error) {
                     console.error('포맷팅 오류:', error);
-                    showError('포맷팅 중 오류가 발생했습니다.');
+                    UiUtils.showError('포맷팅 중 오류가 발생했습니다.');
                 }
             }
 
             function clearJson() {
                 document.getElementById('jsonInput').value = '';
-                hideError();
+                UiUtils.hideError();
             }
 
             function clearYaml() {
                 document.getElementById('yamlInput').value = '';
-                hideError();
-            }
-
-            function copyToClipboard(elementId) {
-                const textarea = document.getElementById(elementId);
-                textarea.select();
-                document.execCommand('copy');
-                alert('복사했습니다!');
-            }
-
-            function showError(message) {
-                const errorDiv = document.getElementById('errorMessage');
-                errorDiv.textContent = message;
-                errorDiv.classList.add('show');
-            }
-
-            function hideError() {
-                const errorDiv = document.getElementById('errorMessage');
-                errorDiv.classList.remove('show');
+                UiUtils.hideError();
             }
 
             function fillJsonExample1() {
@@ -226,7 +191,7 @@
   "email": "john@example.com",
   "active": true
 }`;
-                hideError();
+                UiUtils.hideError();
             }
 
             function fillJsonExample2() {
@@ -243,7 +208,7 @@
   ],
   "total": 2
 }`;
-                hideError();
+                UiUtils.hideError();
             }
 
             function fillYamlExample() {
@@ -263,7 +228,7 @@ features:
   - authentication
   - logging
   - monitoring`;
-                hideError();
+                UiUtils.hideError();
             }
         </script>
     </th:block>

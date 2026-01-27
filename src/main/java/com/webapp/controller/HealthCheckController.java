@@ -1,6 +1,8 @@
 package com.webapp.controller;
 
 import com.webapp.service.MenuService;
+import com.webapp.util.ResponseUtils;
+import com.webapp.util.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpMethod;
@@ -39,48 +41,32 @@ public class HealthCheckController {
             @RequestParam int port,
             @RequestParam(defaultValue = "5000") int timeout) {
         
-        Map<String, Object> result = new HashMap<>();
-        
         try {
-            if (host == null || host.trim().isEmpty()) {
-                result.put("success", false);
-                result.put("message", "호스트를 입력하세요.");
-                return result;
+            if (ValidationUtils.isEmpty(host)) {
+                return ResponseUtils.failure("호스트를 입력하세요.");
             }
             
-            if (port < 1 || port > 65535) {
-                result.put("success", false);
-                result.put("message", "포트는 1~65535 사이여야 합니다.");
-                return result;
+            if (!ValidationUtils.isValidPort(port)) {
+                return ResponseUtils.failure("포트는 1~65535 사이여야 합니다.");
             }
             
             long startTime = System.currentTimeMillis();
-            boolean isOpen = false;
+            boolean isOpen = checkPortConnection(host, port, timeout);
+            long responseTime = System.currentTimeMillis() - startTime;
             
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(host, port), timeout);
-                isOpen = socket.isConnected();
-            } catch (IOException e) {
-                log.debug("포트 연결 실패: {}:{} - {}", host, port, e.getMessage());
-            }
+            Map<String, Object> data = new HashMap<>();
+            data.put("host", host);
+            data.put("port", port);
+            data.put("isOpen", isOpen);
+            data.put("responseTime", responseTime);
+            data.put("status", isOpen ? "OPEN" : "CLOSED");
             
-            long endTime = System.currentTimeMillis();
-            long responseTime = endTime - startTime;
-            
-            result.put("success", true);
-            result.put("host", host);
-            result.put("port", port);
-            result.put("isOpen", isOpen);
-            result.put("responseTime", responseTime);
-            result.put("status", isOpen ? "OPEN" : "CLOSED");
+            return ResponseUtils.success("체크 완료", data);
             
         } catch (Exception e) {
             log.error("포트 체크 오류", e);
-            result.put("success", false);
-            result.put("message", "체크 오류: " + e.getMessage());
+            return ResponseUtils.failure("체크 오류", e);
         }
-        
-        return result;
     }
     
     @PostMapping("/api/url-check")
@@ -89,13 +75,9 @@ public class HealthCheckController {
             @RequestParam String url,
             @RequestParam(defaultValue = "5000") int timeout) {
         
-        Map<String, Object> result = new HashMap<>();
-        
         try {
-            if (url == null || url.trim().isEmpty()) {
-                result.put("success", false);
-                result.put("message", "URL을 입력하세요.");
-                return result;
+            if (ValidationUtils.isEmpty(url)) {
+                return ResponseUtils.failure("URL을 입력하세요.");
             }
             
             if (!url.startsWith("http://") && !url.startsWith("https://")) {
@@ -103,43 +85,67 @@ public class HealthCheckController {
             }
             
             long startTime = System.currentTimeMillis();
-            int statusCode = 0;
-            String statusText = "";
-            boolean isSuccess = false;
+            UrlCheckResult result = checkUrlConnection(url);
+            long responseTime = System.currentTimeMillis() - startTime;
             
-            try {
-                ResponseEntity<String> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.GET,
-                    null,
-                    String.class
-                );
-                
-                statusCode = response.getStatusCode().value();
-                statusText = response.getStatusCode().toString();
-                isSuccess = response.getStatusCode().is2xxSuccessful();
-                
-            } catch (Exception e) {
-                log.debug("URL 체크 실패: {} - {}", url, e.getMessage());
-                statusText = "ERROR: " + e.getMessage();
-            }
+            Map<String, Object> data = new HashMap<>();
+            data.put("url", url);
+            data.put("statusCode", result.statusCode);
+            data.put("statusText", result.statusText);
+            data.put("isSuccess", result.isSuccess);
+            data.put("responseTime", responseTime);
             
-            long endTime = System.currentTimeMillis();
-            long responseTime = endTime - startTime;
-            
-            result.put("success", true);
-            result.put("url", url);
-            result.put("statusCode", statusCode);
-            result.put("statusText", statusText);
-            result.put("isSuccess", isSuccess);
-            result.put("responseTime", responseTime);
+            return ResponseUtils.success("체크 완료", data);
             
         } catch (Exception e) {
             log.error("URL 체크 오류", e);
-            result.put("success", false);
-            result.put("message", "체크 오류: " + e.getMessage());
+            return ResponseUtils.failure("체크 오류", e);
         }
+    }
+    
+    // Private helper methods
+    
+    private boolean checkPortConnection(String host, int port, int timeout) {
+        try (Socket socket = new Socket()) {
+            socket.connect(new InetSocketAddress(host, port), timeout);
+            return socket.isConnected();
+        } catch (IOException e) {
+            log.debug("포트 연결 실패: {}:{} - {}", host, port, e.getMessage());
+            return false;
+        }
+    }
+    
+    private UrlCheckResult checkUrlConnection(String url) {
+        try {
+            ResponseEntity<String> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                null,
+                String.class
+            );
+            
+            return new UrlCheckResult(
+                response.getStatusCode().value(),
+                response.getStatusCode().toString(),
+                response.getStatusCode().is2xxSuccessful()
+            );
+            
+        } catch (Exception e) {
+            log.debug("URL 체크 실패: {} - {}", url, e.getMessage());
+            return new UrlCheckResult(0, "ERROR: " + e.getMessage(), false);
+        }
+    }
+    
+    // Inner class for URL check result
+    private static class UrlCheckResult {
+        final int statusCode;
+        final String statusText;
+        final boolean isSuccess;
         
-        return result;
+        UrlCheckResult(int statusCode, String statusText, boolean isSuccess) {
+            this.statusCode = statusCode;
+            this.statusText = statusText;
+            this.isSuccess = isSuccess;
+        }
     }
 }
