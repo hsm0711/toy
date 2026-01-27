@@ -1,218 +1,392 @@
-/**
- * PDF 병합 페이지 전용 스타일
- */
+/* ========================================
+   PDF 병합 페이지 전용 스타일
+   Modern File Upload Design
+   ======================================== */
 
-/* ========== 컨테이너 ========== */
 .pdf-merge-container {
-    max-width: 800px;
+    max-width: 900px;
     margin: 0 auto;
 }
 
-/* ========== 페이지 헤더 ========== */
+/* 페이지 헤더 */
 .page-header {
-    text-align: center;
-    margin-bottom: 32px;
+    background: white;
+    padding: 2.5rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+    box-shadow: 
+        0 10px 40px rgba(0, 0, 0, 0.08),
+        0 0 0 1px rgba(102, 126, 234, 0.1);
+    border-left: 5px solid;
+    border-image: linear-gradient(135deg, #667eea 0%, #764ba2 100%) 1;
+    position: relative;
+    overflow: hidden;
+}
+
+.page-header::before {
+    content: '📄';
+    position: absolute;
+    top: -20px;
+    right: -20px;
+    font-size: 150px;
+    opacity: 0.05;
 }
 
 .page-header h2 {
-    font-size: 2rem;
-    color: var(--text-primary);
-    margin-bottom: 8px;
+    font-size: 2.25rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 0.75rem;
 }
 
 .page-header .description {
-    color: var(--text-secondary);
-    font-size: 1.1rem;
+    color: #718096;
+    font-size: 1.05rem;
+    margin: 0;
 }
 
-/* ========== 업로드 영역 ========== */
+/* 업로드 영역 */
 .upload-area {
-    border: 2px dashed var(--border-color);
-    border-radius: var(--border-radius-lg);
-    padding: 48px 24px;
+    background: white;
+    border: 3px dashed #cbd5e0;
+    border-radius: 20px;
+    padding: 4rem 2rem;
     text-align: center;
-    background-color: var(--bg-white);
     cursor: pointer;
-    transition: all 0.3s ease;
-    margin-bottom: 24px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-area::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent, 
+        rgba(102, 126, 234, 0.1), 
+        transparent);
+    transition: left 0.5s;
+}
+
+.upload-area:hover::before {
+    left: 100%;
 }
 
 .upload-area:hover {
-    border-color: var(--primary-color);
-    background-color: rgba(0, 123, 255, 0.02);
+    border-color: #667eea;
+    background: linear-gradient(135deg, 
+        rgba(102, 126, 234, 0.03) 0%, 
+        rgba(118, 75, 162, 0.03) 100%);
+    transform: translateY(-4px);
+    box-shadow: 
+        0 10px 40px rgba(102, 126, 234, 0.15),
+        0 0 0 1px rgba(102, 126, 234, 0.1);
 }
 
 .upload-area.drag-over {
-    border-color: var(--primary-color);
-    background-color: rgba(0, 123, 255, 0.05);
+    border-color: #667eea;
+    background: linear-gradient(135deg, 
+        rgba(102, 126, 234, 0.1) 0%, 
+        rgba(118, 75, 162, 0.1) 100%);
+    transform: scale(1.02);
 }
 
 .upload-prompt svg {
-    color: var(--primary-color);
-    margin-bottom: 16px;
+    margin-bottom: 1.5rem;
+    color: #667eea;
+    filter: drop-shadow(0 4px 12px rgba(102, 126, 234, 0.3));
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
 }
 
 .upload-prompt p {
-    color: var(--text-secondary);
-    font-size: 1rem;
+    color: #4a5568;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin: 0;
 }
 
-/* ========== 파일 목록 ========== */
+/* 파일 리스트 */
 .file-list {
-    background: var(--bg-white);
-    border-radius: var(--border-radius-lg);
-    padding: 24px;
-    margin-bottom: 24px;
-    box-shadow: var(--shadow-sm);
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 .file-list h3 {
-    font-size: 1.2rem;
-    margin-bottom: 16px;
-    color: var(--text-primary);
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.file-list h3 span {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
 }
 
 .file-list ul {
     list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .file-list li {
+    background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+    padding: 1.25rem;
+    margin-bottom: 0.75rem;
+    border-radius: 12px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 12px;
-    border: 1px solid var(--border-light);
-    border-radius: var(--border-radius-sm);
-    margin-bottom: 8px;
-    background: var(--bg-light);
-    transition: background 0.2s ease;
+    justify-content: space-between;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    cursor: grab;
 }
 
 .file-list li:hover {
-    background: #e9ecef;
+    background: white;
+    border-color: #667eea;
+    transform: translateX(8px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
-.file-list .file-info {
+.file-list li:active {
+    cursor: grabbing;
+}
+
+.file-list li:last-child {
+    margin-bottom: 0;
+}
+
+.file-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex: 1;
+    gap: 1rem;
 }
 
-.file-list .file-icon {
-    color: var(--danger-color);
-    font-size: 1.5rem;
+.file-icon {
+    font-size: 2rem;
 }
 
-.file-list .file-name {
-    color: var(--text-primary);
-    font-weight: 500;
-}
-
-.file-list .file-size {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-}
-
-.file-list .file-actions {
+.file-details {
     display: flex;
-    gap: 8px;
+    flex-direction: column;
 }
 
-.file-list .file-actions button {
-    padding: 4px 8px;
+.file-name {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.25rem;
+}
+
+.file-size {
     font-size: 0.85rem;
-    background: transparent;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
+    color: #718096;
+}
+
+.file-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.file-actions button {
+    background: none;
+    border: none;
     cursor: pointer;
-    transition: all 0.2s ease;
+    font-size: 1.5rem;
+    transition: all 0.3s ease;
+    padding: 0.5rem;
+    border-radius: 8px;
 }
 
-.file-list .file-actions button:hover {
-    background: var(--bg-light);
+.file-actions button:hover {
+    background: #edf2f7;
+    transform: scale(1.1);
 }
 
-/* ========== 액션 버튼 영역 ========== */
+.drag-handle {
+    color: #cbd5e0;
+}
+
+.drag-handle:hover {
+    color: #667eea;
+}
+
+.remove-btn {
+    color: #f56565;
+}
+
+.remove-btn:hover {
+    background: #fed7d7 !important;
+}
+
+/* 액션 버튼 */
 .action-buttons {
     display: flex;
-    gap: 12px;
+    gap: 1rem;
     justify-content: center;
-    margin-bottom: 24px;
+    margin-bottom: 2rem;
 }
 
-/* ========== 결과 영역 ========== */
+/* 결과 영역 */
 .result {
-    background: var(--bg-white);
-    border-radius: var(--border-radius-lg);
-    padding: 24px;
-    box-shadow: var(--shadow-sm);
+    background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+    border: 2px solid #28a745;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    animation: slideIn 0.5s ease;
 }
 
-.result.success {
-    border-left: 4px solid var(--success-color);
-}
-
-.result.error {
-    border-left: 4px solid var(--danger-color);
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .result h3 {
-    margin-bottom: 12px;
+    color: #155724;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
 }
 
 .result p {
-    margin-bottom: 16px;
-    color: var(--text-secondary);
+    color: #155724;
+    margin-bottom: 1.5rem;
 }
 
-.result .download-link {
-    display: inline-block;
-    color: var(--primary-color);
+.result a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #28a745;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 12px;
     text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.result a:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(40, 167, 69, 0.4);
+}
+
+/* 로딩 */
+.loading {
+    background: white;
+    border-radius: 16px;
+    padding: 3rem;
+    text-align: center;
+    box-shadow: 
+        0 4px 20px rgba(0, 0, 0, 0.06),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+.spinner {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1.5rem;
+    border: 4px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading p {
+    color: #4a5568;
+    font-size: 1.1rem;
     font-weight: 500;
 }
 
-.result .download-link:hover {
-    text-decoration: underline;
-}
-
-/* ========== 드래그 앤 드롭 상태 ========== */
-.file-item.dragging {
-    opacity: 0.5;
-}
-
-.file-item.drag-over {
-    border-color: var(--primary-color);
-    background: rgba(0, 123, 255, 0.1);
-}
-
-/* ========== 반응형 디자인 ========== */
+/* 반응형 */
 @media (max-width: 768px) {
-    .pdf-merge-container {
-        padding: 0 16px;
+    .page-header {
+        padding: 2rem 1.5rem;
     }
-    
+
+    .page-header h2 {
+        font-size: 1.75rem;
+    }
+
     .upload-area {
-        padding: 32px 16px;
+        padding: 3rem 1.5rem;
     }
-    
-    .action-buttons {
-        flex-direction: column;
+
+    .file-list {
+        padding: 1.5rem;
     }
-    
-    .action-buttons .btn {
-        width: 100%;
-    }
-    
+
     .file-list li {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 1rem;
     }
-    
-    .file-list .file-actions {
+
+    .file-actions {
         width: 100%;
         justify-content: flex-end;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .upload-area {
+        padding: 2rem 1rem;
+    }
+
+    .upload-prompt p {
+        font-size: 1rem;
+    }
+
+    .file-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
     }
 }
