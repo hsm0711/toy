@@ -1,6 +1,8 @@
 package com.webapp.controller;
 
 import com.webapp.service.MenuService;
+import com.webapp.util.ResponseUtils;
+import com.webapp.util.ValidationUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
@@ -27,31 +29,22 @@ public class IpCalculatorController {
     @PostMapping("/api/calculate")
     @ResponseBody
     public Map<String, Object> calculateCidr(@RequestBody Map<String, String> request) {
-        Map<String, Object> result = new HashMap<>();
-        
         try {
             String cidr = request.get("cidr");
-            if (cidr == null || cidr.trim().isEmpty()) {
-                result.put("success", false);
-                result.put("message", "CIDR 표기법을 입력하세요.");
-                return result;
+            
+            if (ValidationUtils.isEmpty(cidr)) {
+                return ResponseUtils.failure("CIDR 표기법을 입력하세요.");
+            }
+            
+            if (!ValidationUtils.isValidCidr(cidr)) {
+                return ResponseUtils.failure("올바른 CIDR 형식이 아닙니다. (예: 192.168.1.0/24)");
             }
             
             String[] parts = cidr.split("/");
-            if (parts.length != 2) {
-                result.put("success", false);
-                result.put("message", "올바른 CIDR 형식이 아닙니다. (예: 192.168.1.0/24)");
-                return result;
-            }
-            
             String ipAddress = parts[0];
             int prefixLength = Integer.parseInt(parts[1]);
             
-            if (prefixLength < 0 || prefixLength > 32) {
-                result.put("success", false);
-                result.put("message", "프리픽스 길이는 0~32 사이여야 합니다.");
-                return result;
-            }
+            ValidationUtils.requireInRange(prefixLength, 0, 32, "프리픽스 길이");
             
             long ipLong = ipToLong(ipAddress);
             long subnetMask = getSubnetMask(prefixLength);
@@ -62,31 +55,31 @@ public class IpCalculatorController {
             long totalHosts = (long) Math.pow(2, 32 - prefixLength);
             long usableHosts = totalHosts > 2 ? totalHosts - 2 : 0;
             
-            result.put("success", true);
-            result.put("cidr", cidr);
-            result.put("ipAddress", ipAddress);
-            result.put("prefixLength", prefixLength);
-            result.put("subnetMask", longToIp(subnetMask));
-            result.put("wildcardMask", longToIp(~subnetMask & 0xFFFFFFFFL));
-            result.put("networkAddress", longToIp(networkAddress));
-            result.put("broadcastAddress", longToIp(broadcastAddress));
-            result.put("firstHost", prefixLength < 31 ? longToIp(firstHost) : "N/A");
-            result.put("lastHost", prefixLength < 31 ? longToIp(lastHost) : "N/A");
-            result.put("totalHosts", totalHosts);
-            result.put("usableHosts", usableHosts);
-            result.put("ipClass", getIpClass(ipAddress));
-            result.put("ipType", getIpType(ipAddress));
+            Map<String, Object> data = new HashMap<>();
+            data.put("cidr", cidr);
+            data.put("ipAddress", ipAddress);
+            data.put("prefixLength", prefixLength);
+            data.put("subnetMask", longToIp(subnetMask));
+            data.put("wildcardMask", longToIp(~subnetMask & 0xFFFFFFFFL));
+            data.put("networkAddress", longToIp(networkAddress));
+            data.put("broadcastAddress", longToIp(broadcastAddress));
+            data.put("firstHost", prefixLength < 31 ? longToIp(firstHost) : "N/A");
+            data.put("lastHost", prefixLength < 31 ? longToIp(lastHost) : "N/A");
+            data.put("totalHosts", totalHosts);
+            data.put("usableHosts", usableHosts);
+            data.put("ipClass", getIpClass(ipAddress));
+            data.put("ipType", getIpType(ipAddress));
+            
+            return ResponseUtils.success("계산 완료", data);
             
         } catch (NumberFormatException e) {
-            result.put("success", false);
-            result.put("message", "잘못된 숫자 형식입니다.");
+            return ResponseUtils.failure("잘못된 숫자 형식입니다.");
+        } catch (IllegalArgumentException e) {
+            return ResponseUtils.failure(e.getMessage());
         } catch (Exception e) {
             log.error("CIDR 계산 오류", e);
-            result.put("success", false);
-            result.put("message", "계산 오류: " + e.getMessage());
+            return ResponseUtils.failure("계산 오류", e);
         }
-        
-        return result;
     }
     
     private long ipToLong(String ipAddress) {
@@ -98,9 +91,7 @@ public class IpCalculatorController {
         long result = 0;
         for (int i = 0; i < 4; i++) {
             int octet = Integer.parseInt(octets[i]);
-            if (octet < 0 || octet > 255) {
-                throw new IllegalArgumentException("옥텟 값은 0~255 사이여야 합니다.");
-            }
+            ValidationUtils.requireInRange(octet, 0, 255, "옥텟 값");
             result = (result << 8) | octet;
         }
         return result;

@@ -6,6 +6,7 @@
     <title>Encode / Decode</title>
     <th:block layout:fragment="extra-css">
         <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
         <style>
             .tab-buttons {
                 display: flex;
@@ -84,7 +85,7 @@
                     <label>결과</label>
                     <textarea id="base64Output" readonly></textarea>
                 </div>
-                <button class="copy-btn" onclick="copyToClipboard('base64Output')">📋 복사하기</button>
+                <button class="copy-btn" onclick="ClipboardUtils.copyFromElement('base64Output')">📋 복사하기</button>
             </div>
 
             <!-- URL Tab -->
@@ -103,7 +104,7 @@
                     <label>결과</label>
                     <textarea id="urlOutput" readonly></textarea>
                 </div>
-                <button class="copy-btn" onclick="copyToClipboard('urlOutput')">📋 복사하기</button>
+                <button class="copy-btn" onclick="ClipboardUtils.copyFromElement('urlOutput')">📋 복사하기</button>
             </div>
 
             <!-- HTML Tab -->
@@ -122,12 +123,16 @@
                     <label>결과</label>
                     <textarea id="htmlOutput" readonly></textarea>
                 </div>
-                <button class="copy-btn" onclick="copyToClipboard('htmlOutput')">📋 복사하기</button>
+                <button class="copy-btn" onclick="ClipboardUtils.copyFromElement('htmlOutput')">📋 복사하기</button>
             </div>
+            
+            <div id="errorMessage" class="error-message"></div>
         </div>
     </div>
 
     <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
         <script>
             function switchTab(tabName) {
                 document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -137,100 +142,154 @@
                 document.getElementById(tabName + 'Tab').classList.add('active');
             }
 
-            async function callApi(endpoint, input) {
-                try {
-                    const response = await fetch(endpoint, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ input: input })
-                    });
-                    return await response.json();
-                } catch (error) {
-                    console.error('API 호출 오류:', error);
-                    return { success: false, message: '처리 중 오류가 발생했습니다.' };
-                }
-            }
-
             async function base64Encode() {
                 const input = document.getElementById('base64Input').value;
-                const data = await callApi('/encode-decode/api/base64-encode', input);
-                if (data.success) {
-                    document.getElementById('base64Output').value = data.result;
-                } else {
-                    alert(data.message);
+                
+                if (!ValidationUtils.validateRequired('base64Input', 'Base64 텍스트를 입력하세요.')) {
+                    return;
+                }
+                
+                try {
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/encode-decode/api/base64-encode', { input });
+                    
+                    if (data.success) {
+                        document.getElementById('base64Output').value = data.result;
+                    } else {
+                        UiUtils.showError(data.message);
+                    }
+                } catch (error) {
+                    console.error('API 호출 오류:', error);
+                    UiUtils.showError('처리 중 오류가 발생했습니다.');
                 }
             }
 
             async function base64Decode() {
                 const input = document.getElementById('base64Input').value;
-                const data = await callApi('/encode-decode/api/base64-decode', input);
-                if (data.success) {
-                    document.getElementById('base64Output').value = data.result;
-                } else {
-                    alert(data.message);
+                
+                if (!ValidationUtils.validateRequired('base64Input', 'Base64 텍스트를 입력하세요.')) {
+                    return;
+                }
+                
+                try {
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/encode-decode/api/base64-decode', { input });
+                    
+                    if (data.success) {
+                        document.getElementById('base64Output').value = data.result;
+                    } else {
+                        UiUtils.showError(data.message);
+                    }
+                } catch (error) {
+                    console.error('API 호출 오류:', error);
+                    UiUtils.showError('처리 중 오류가 발생했습니다.');
                 }
             }
 
             async function urlEncode() {
                 const input = document.getElementById('urlInput').value;
-                const data = await callApi('/encode-decode/api/url-encode', input);
-                if (data.success) {
-                    document.getElementById('urlOutput').value = data.result;
-                } else {
-                    alert(data.message);
+                
+                if (!ValidationUtils.validateRequired('urlInput', 'URL을 입력하세요.')) {
+                    return;
+                }
+                
+                try {
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/encode-decode/api/url-encode', { input });
+                    
+                    if (data.success) {
+                        document.getElementById('urlOutput').value = data.result;
+                    } else {
+                        UiUtils.showError(data.message);
+                    }
+                } catch (error) {
+                    console.error('API 호출 오류:', error);
+                    UiUtils.showError('처리 중 오류가 발생했습니다.');
                 }
             }
 
             async function urlDecode() {
                 const input = document.getElementById('urlInput').value;
-                const data = await callApi('/encode-decode/api/url-decode', input);
-                if (data.success) {
-                    document.getElementById('urlOutput').value = data.result;
-                } else {
-                    alert(data.message);
+                
+                if (!ValidationUtils.validateRequired('urlInput', 'URL을 입력하세요.')) {
+                    return;
+                }
+                
+                try {
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/encode-decode/api/url-decode', { input });
+                    
+                    if (data.success) {
+                        document.getElementById('urlOutput').value = data.result;
+                    } else {
+                        UiUtils.showError(data.message);
+                    }
+                } catch (error) {
+                    console.error('API 호출 오류:', error);
+                    UiUtils.showError('처리 중 오류가 발생했습니다.');
                 }
             }
 
             async function htmlEscape() {
                 const input = document.getElementById('htmlInput').value;
-                const data = await callApi('/encode-decode/api/html-escape', input);
-                if (data.success) {
-                    document.getElementById('htmlOutput').value = data.result;
-                } else {
-                    alert(data.message);
+                
+                if (!ValidationUtils.validateRequired('htmlInput', 'HTML을 입력하세요.')) {
+                    return;
+                }
+                
+                try {
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/encode-decode/api/html-escape', { input });
+                    
+                    if (data.success) {
+                        document.getElementById('htmlOutput').value = data.result;
+                    } else {
+                        UiUtils.showError(data.message);
+                    }
+                } catch (error) {
+                    console.error('API 호출 오류:', error);
+                    UiUtils.showError('처리 중 오류가 발생했습니다.');
                 }
             }
 
             async function htmlUnescape() {
                 const input = document.getElementById('htmlInput').value;
-                const data = await callApi('/encode-decode/api/html-unescape', input);
-                if (data.success) {
-                    document.getElementById('htmlOutput').value = data.result;
-                } else {
-                    alert(data.message);
+                
+                if (!ValidationUtils.validateRequired('htmlInput', 'HTML을 입력하세요.')) {
+                    return;
+                }
+                
+                try {
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/encode-decode/api/html-unescape', { input });
+                    
+                    if (data.success) {
+                        document.getElementById('htmlOutput').value = data.result;
+                    } else {
+                        UiUtils.showError(data.message);
+                    }
+                } catch (error) {
+                    console.error('API 호출 오류:', error);
+                    UiUtils.showError('처리 중 오류가 발생했습니다.');
                 }
             }
 
             function clearBase64() {
                 document.getElementById('base64Input').value = '';
                 document.getElementById('base64Output').value = '';
+                UiUtils.hideError();
             }
 
             function clearUrl() {
                 document.getElementById('urlInput').value = '';
                 document.getElementById('urlOutput').value = '';
+                UiUtils.hideError();
             }
 
             function clearHtml() {
                 document.getElementById('htmlInput').value = '';
                 document.getElementById('htmlOutput').value = '';
-            }
-
-            function copyToClipboard(elementId) {
-                const textarea = document.getElementById(elementId);
-                textarea.select();
-                document.execCommand('copy');
-                alert('복사했습니다!');
+                UiUtils.hideError();
             }
         </script>
     </th:block>
