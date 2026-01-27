@@ -14,13 +14,25 @@
     <link rel="icon" type="image/svg+xml" th:href="@{/image/favicon.svg}">
 </head>
 <body>
+    <!-- 모바일 메뉴 오버레이 -->
+    <div class="overlay" id="menuOverlay"></div>
+
     <!-- 네비게이션 바 (공통) -->
     <nav class="navbar" th:fragment="navbar">
         <div class="container">
             <h1 class="logo">
-                <a th:href="@{/}" style="color: inherit; text-decoration: none;">Playground</a>
+                <a th:href="@{/}">Playground</a>
             </h1>
-            <ul class="nav-menu">
+            
+            <!-- 햄버거 메뉴 버튼 -->
+            <button class="menu-toggle" id="menuToggle" aria-label="메뉴 토글">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            
+            <!-- 메뉴 리스트 -->
+            <ul class="nav-menu" id="navMenu">
                 <li th:each="menu : ${menus}">
                     <a th:href="@{${menu.path}}" 
                        th:text="${menu.name}"
@@ -46,6 +58,79 @@
     </footer>
 
     <!-- 공통 JavaScript -->
+    <script>
+        // 모바일 메뉴 토글 기능
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.getElementById('menuToggle');
+            const navMenu = document.getElementById('navMenu');
+            const menuOverlay = document.getElementById('menuOverlay');
+            const body = document.body;
+            
+            if (menuToggle && navMenu && menuOverlay) {
+                // 메뉴 토글 버튼 클릭
+                menuToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleMenu();
+                });
+                
+                // 오버레이 클릭 시 메뉴 닫기
+                menuOverlay.addEventListener('click', function() {
+                    closeMenu();
+                });
+                
+                // 메뉴 링크 클릭 시 메뉴 닫기 (모바일)
+                const menuLinks = navMenu.querySelectorAll('a');
+                menuLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth <= 992) {
+                            closeMenu();
+                        }
+                    });
+                });
+                
+                // ESC 키로 메뉴 닫기
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+                        closeMenu();
+                    }
+                });
+                
+                // 윈도우 리사이즈 시 메뉴 상태 초기화
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth > 992) {
+                        closeMenu();
+                    }
+                });
+            }
+            
+            function toggleMenu() {
+                menuToggle.classList.toggle('active');
+                navMenu.classList.toggle('active');
+                menuOverlay.classList.toggle('active');
+                body.style.overflow = navMenu.classList.contains('active') ? 'hidden' : '';
+            }
+            
+            function closeMenu() {
+                menuToggle.classList.remove('active');
+                navMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
+                body.style.overflow = '';
+            }
+        });
+        
+        // 스크롤 시 네비게이션 바 그림자 효과
+        window.addEventListener('scroll', function() {
+            const navbar = document.querySelector('.navbar');
+            if (navbar) {
+                if (window.scrollY > 10) {
+                    navbar.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+                } else {
+                    navbar.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
+                }
+            }
+        });
+    </script>
+    
     <th:block layout:fragment="extra-js"></th:block>
 </body>
 </html>
