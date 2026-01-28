@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>URL 안전성 검증</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
+        <style>
+            .risk-badge {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                border-radius: 20px;
+                font-weight: 600;
+                font-size: 1.1rem;
+                margin: 1rem 0;
+            }
+            
+            .risk-safe {
+                background: #d4edda;
+                color: #155724;
+                border: 2px solid #28a745;
+            }
+            
+            .risk-low {
+                background: #d1ecf1;
+                color: #0c5460;
+                border: 2px solid #17a2b8;
+            }
+            
+            .risk-medium {
+                background: #fff3cd;
+                color: #856404;
+                border: 2px solid #ffc107;
+            }
+            
+            .risk-high {
+                background: #f8d7da;
+                color: #721c24;
+                border: 2px solid #dc3545;
+            }
+            
+            .recommendation-box {
+                padding: 1.5rem;
+                border-radius: 10px;
+                margin: 1.5rem 0;
+                font-size: 1.1rem;
+                font-weight: 500;
+            }
+            
+            .recommendation-safe {
+                background: #d4edda;
+                color: #155724;
+                border-left: 5px solid #28a745;
+            }
+            
+            .recommendation-low {
+                background: #d1ecf1;
+                color: #0c5460;
+                border-left: 5px solid #17a2b8;
+            }
+            
+            .recommendation-medium {
+                background: #fff3cd;
+                color: #856404;
+                border-left: 5px solid #ffc107;
+            }
+            
+            .recommendation-high {
+                background: #f8d7da;
+                color: #721c24;
+                border-left: 5px solid #dc3545;
+            }
+            
+            .checks-section, .warnings-section {
+                background: white;
+                padding: 1.5rem;
+                border-radius: 10px;
+                margin: 1rem 0;
+            }
+            
+            .checks-section h4 {
+                color: #28a745;
+                margin-bottom: 1rem;
+            }
+            
+            .warnings-section h4 {
+                color: #dc3545;
+                margin-bottom: 1rem;
+            }
+            
+            .check-item, .warning-item {
+                padding: 0.5rem 0;
+                border-bottom: 1px solid #e9ecef;
+            }
+            
+            .check-item:last-child, .warning-item:last-child {
+                border-bottom: none;
+            }
+            
+            .score-display {
+                font-size: 3rem;
+                font-weight: 700;
+                text-align: center;
+                margin: 1rem 0;
+            }
+            
+            .score-safe { color: #28a745; }
+            .score-low { color: #17a2b8; }
+            .score-medium { color: #ffc107; }
+            .score-high { color: #dc3545; }
+            
+            .info-box {
+                background: #e7f3ff;
+                padding: 1rem;
+                border-radius: 8px;
+                border-left: 4px solid #007bff;
+                margin: 1rem 0;
+            }
+            
+            .info-box h4 {
+                color: #004085;
+                margin-bottom: 0.5rem;
+            }
+            
+            .info-box ul {
+                margin: 0.5rem 0 0 1.5rem;
+            }
+            
+            .info-box li {
+                margin: 0.25rem 0;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="tool-container">
+            <div class="page-header">
+                <h2>🔒 URL 안전성 검증</h2>
+                <p class="description">URL이 피싱이나 사기 사이트인지 확인합니다.</p>
+            </div>
+
+            <div class="info-box">
+                <h4>이 도구는 무엇을 확인하나요?</h4>
+                <ul>
+                    <li>✓ HTTPS 사용 여부</li>
+                    <li>✓ 의심스러운 도메인 패턴</li>
+                    <li>✓ 유명 브랜드 모방 여부</li>
+                    <li>✓ URL 단축 서비스 사용</li>
+                    <li>✓ 피싱 관련 키워드</li>
+                    <li>✓ 비정상적인 URL 구조</li>
+                </ul>
+            </div>
+
+            <div class="tool-section card">
+                <div class="input-group">
+                    <label>검증할 URL 입력</label>
+                    <input type="text" id="urlInput" placeholder="예: https://example.com">
+                    <div class="helper-text">http:// 또는 https:// 포함 또는 생략 가능</div>
+                </div>
+                <button class="btn btn-primary" onclick="validateUrl()">검증하기</button>
+                
+                <div id="resultArea" style="display: none; margin-top: 2rem;">
+                    <!-- 위험도 점수 -->
+                    <div style="text-align: center;">
+                        <div id="riskBadge" class="risk-badge"></div>
+                        <div id="scoreDisplay" class="score-display"></div>
+                        <p style="color: #6c757d;">위험도 점수 (0-100)</p>
+                    </div>
+                    
+                    <!-- 권장사항 -->
+                    <div id="recommendationBox" class="recommendation-box"></div>
+                    
+                    <!-- 검증 항목 -->
+                    <div class="checks-section" id="checksSection">
+                        <h4>✅ 통과한 검사</h4>
+                        <div id="checksList"></div>
+                    </div>
+                    
+                    <!-- 경고 항목 -->
+                    <div class="warnings-section" id="warningsSection" style="display: none;">
+                        <h4>⚠️ 발견된 경고</h4>
+                        <div id="warningsList"></div>
+                    </div>
+                    
+                    <!-- URL 정보 -->
+                    <div class="result-box">
+                        <div class="result-item">
+                            <span class="result-label">검증된 URL</span>
+                            <span class="result-value" id="checkedUrl"></span>
+                        </div>
+                        <div class="result-item">
+                            <span class="result-label">호스트</span>
+                            <span class="result-value" id="hostName"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="examples" style="background: #fff3cd;">
+                <h4 style="color: #856404;">테스트 예제 (안전한 사이트)</h4>
+                <div class="example-item" onclick="fillExample('https://google.com')">https://google.com</div>
+                <div class="example-item" onclick="fillExample('https://github.com')">https://github.com</div>
+                <div class="example-item" onclick="fillExample('https://naver.com')">https://naver.com</div>
+            </div>
+
+            <div class="examples" style="background: #f8d7da;">
+                <h4 style="color: #721c24;">⚠️ 주의: 의심스러운 패턴 예제</h4>
+                <div class="example-item" onclick="fillExample('http://192.168.1.1/login')">http://192.168.1.1/login - IP 주소 사용</div>
+                <div class="example-item" onclick="fillExample('http://paypal-verify-account.tk')">http://paypal-verify-account.tk - 의심스러운 TLD</div>
+                <div class="example-item" onclick="fillExample('http://google-login-secure.com')">http://google-login-secure.com - 브랜드 모방</div>
+            </div>
+            
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
+        <script>
+            async function validateUrl() {
+                const url = document.getElementById('urlInput').value;
+                
+                if (!ValidationUtils.validateRequired('urlInput', 'URL을 입력하세요.')) {
+                    return;
+                }
+                
+                try {
+                    UiUtils.hideError();
+                    const data = await ApiClient.postJson('/url-validator/api/validate', { url: url });
+                    
+                    if (data.success) {
+                        displayResults(data);
+                    } else {
+                        UiUtils.showError(data.message);
+                    }
+                } catch (error) {
+                    console.error('URL 검증 오류:', error);
+                    UiUtils.showError('검증 중 오류가 발생했습니다.');
+                }
+            }
+
+            function displayResults(data) {
+                const resultArea = document.getElementById('resultArea');
+                const riskBadge = document.getElementById('riskBadge');
+                const scoreDisplay = document.getElementById('scoreDisplay');
+                const recommendationBox = document.getElementById('recommendationBox');
+                const checksList = document.getElementById('checksList');
+                const warningsList = document.getElementById('warningsList');
+                const warningsSection = document.getElementById('warningsSection');
+                
+                // 위험도 레벨에 따른 클래스
+                let riskClass, scoreClass, recClass;
+                switch(data.riskLevel) {
+                    case 'HIGH_RISK':
+                        riskClass = 'risk-high';
+                        scoreClass = 'score-high';
+                        recClass = 'recommendation-high';
+                        riskBadge.textContent = '🚨 고위험';
+                        break;
+                    case 'MEDIUM_RISK':
+                        riskClass = 'risk-medium';
+                        scoreClass = 'score-medium';
+                        recClass = 'recommendation-medium';
+                        riskBadge.textContent = '⚠️ 중위험';
+                        break;
+                    case 'LOW_RISK':
+                        riskClass = 'risk-low';
+                        scoreClass = 'score-low';
+                        recClass = 'recommendation-low';
+                        riskBadge.textContent = 'ℹ️ 저위험';
+                        break;
+                    default:
+                        riskClass = 'risk-safe';
+                        scoreClass = 'score-safe';
+                        recClass = 'recommendation-safe';
+                        riskBadge.textContent = '✅ 안전';
+                }
+                
+                riskBadge.className = 'risk-badge ' + riskClass;
+                scoreDisplay.textContent = data.riskScore;
+                scoreDisplay.className = 'score-display ' + scoreClass;
+                
+                // 권장사항
+                recommendationBox.textContent = data.recommendation;
+                recommendationBox.className = 'recommendation-box ' + recClass;
+                
+                // 통과한 검사
+                checksList.innerHTML = data.checks.map(check => 
+                    `<div class="check-item">${HtmlUtils.escape(check)}</div>`
+                ).join('');
+                
+                // 경고 항목
+                if (data.warnings && data.warnings.length > 0) {
+                    warningsList.innerHTML = data.warnings.map(warning => 
+                        `<div class="warning-item">${HtmlUtils.escape(warning)}</div>`
+                    ).join('');
+                    warningsSection.style.display = 'block';
+                } else {
+                    warningsSection.style.display = 'none';
+                }
+                
+                // URL 정보
+                document.getElementById('checkedUrl').textContent = data.url;
+                document.getElementById('hostName').textContent = data.host;
+                
+                UiUtils.show('resultArea');
+            }
+
+            function fillExample(url) {
+                document.getElementById('urlInput').value = url;
+                validateUrl();
+            }
+        </script>
+    </th:block>
+</body>
+</html>
