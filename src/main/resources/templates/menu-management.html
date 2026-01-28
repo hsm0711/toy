@@ -86,10 +86,12 @@
             .modal-content {
                 background: white;
                 border-radius: 8px;
-                max-width: 500px;
-                margin: 100px auto;
+                max-width: 600px;
+                margin: 80px auto;
                 padding: 2rem;
                 box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                max-height: 85vh;
+                overflow-y: auto;
             }
 
             .modal-header {
@@ -201,6 +203,149 @@
             .icon-btn.danger:hover {
                 color: #c82333;
             }
+
+            /* 아이콘 추천 스타일 */
+            .icon-suggestions-container {
+                position: relative;
+            }
+
+            .icon-suggestions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-top: 0.5rem;
+                padding: 1rem;
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                border-radius: 8px;
+                min-height: 60px;
+                border: 2px dashed #dee2e6;
+                transition: all 0.3s ease;
+            }
+
+            .icon-suggestions.loading {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 80px;
+            }
+
+            .icon-suggestions.has-items {
+                border-color: #667eea;
+                border-style: solid;
+            }
+
+            .icon-suggestion-item {
+                display: inline-flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.25rem;
+                padding: 0.6rem 0.8rem;
+                background: white;
+                border: 2px solid #dee2e6;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                font-size: 0.85rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            }
+
+            .icon-suggestion-item:hover {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-color: #667eea;
+                transform: translateY(-3px) scale(1.05);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            }
+
+            .icon-suggestion-item.selected {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-color: #667eea;
+                transform: scale(1.05);
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+            }
+
+            .icon-suggestion-item .emoji {
+                font-size: 1.8rem;
+                line-height: 1;
+            }
+
+            .icon-suggestion-item .label {
+                font-size: 0.7rem;
+                opacity: 0.8;
+                text-align: center;
+            }
+
+            .icon-suggestions.empty {
+                display: none;
+            }
+
+            .helper-text {
+                font-size: 0.75rem;
+                color: #6c757d;
+                margin-top: 0.25rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .ai-badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.25rem;
+                padding: 0.15rem 0.4rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 10px;
+                font-size: 0.7rem;
+                font-weight: 600;
+            }
+
+            .loading-spinner {
+                width: 30px;
+                height: 30px;
+                border: 3px solid #f3f3f3;
+                border-top: 3px solid #667eea;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            .suggestion-placeholder {
+                text-align: center;
+                color: #6c757d;
+                font-size: 0.9rem;
+                padding: 1rem;
+            }
+
+            .refresh-btn {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.25rem;
+                padding: 0.4rem 0.8rem;
+                background: #667eea;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 0.8rem;
+                transition: all 0.2s;
+                margin-top: 0.5rem;
+            }
+
+            .refresh-btn:hover {
+                background: #5568d3;
+                transform: translateY(-2px);
+            }
+
+            .refresh-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
         </style>
     </th:block>
 </head>
@@ -253,7 +398,7 @@
                     
                     <div class="form-group">
                         <label for="menuName">메뉴명 *</label>
-                        <input type="text" id="menuName" class="form-control" required>
+                        <input type="text" id="menuName" class="form-control" required oninput="debouncedSuggestIcon()">
                     </div>
 
                     <div class="form-group">
@@ -262,8 +407,24 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="menuIcon">아이콘 (선택)</label>
-                        <input type="text" id="menuIcon" class="form-control" placeholder="🔧">
+                        <label for="menuIcon">
+                            아이콘 (선택)
+                            <span class="ai-badge">✨ AI 추천</span>
+                        </label>
+                        <input type="text" id="menuIcon" class="form-control" placeholder="🔧" readonly>
+                        <div class="helper-text">
+                            <span>메뉴명을 입력하면 AI가 적합한 아이콘을 실시간으로 추천합니다</span>
+                        </div>
+                        <div class="icon-suggestions-container">
+                            <div id="iconSuggestions" class="icon-suggestions empty">
+                                <div class="suggestion-placeholder">
+                                    💡 메뉴명을 입력하면 AI가 아이콘을 추천합니다
+                                </div>
+                            </div>
+                            <button type="button" id="refreshBtn" class="refresh-btn" onclick="suggestIconWithAI()" style="display: none;">
+                                🔄 다른 아이콘 추천받기
+                            </button>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -294,6 +455,8 @@
         <script>
             let menus = [];
             let editingMenuId = null;
+            let debounceTimer = null;
+            let lastMenuName = '';
 
             window.onload = function() {
                 loadMenus();
@@ -361,6 +524,7 @@
                 document.getElementById('menuForm').reset();
                 document.getElementById('menuId').value = '';
                 document.getElementById('isActive').checked = true;
+                resetIconSuggestions();
                 document.getElementById('menuModal').style.display = 'block';
             }
 
@@ -370,7 +534,7 @@
                 
                 if (!menu) return;
 
-                document.getElementById('modalTitle').textContent = '메뉴 수정';
+                document.getElementById('modalTitle').textContent = '✏️ 메뉴 수정';
                 document.getElementById('menuId').value = menu.id;
                 document.getElementById('menuName').value = menu.name;
                 document.getElementById('menuPath').value = menu.path;
@@ -378,10 +542,206 @@
                 document.getElementById('displayOrder').value = menu.displayOrder;
                 document.getElementById('isActive').checked = menu.isActive;
                 document.getElementById('menuModal').style.display = 'block';
+                
+                // 아이콘 추천 표시
+                lastMenuName = menu.name;
+                suggestIconWithAI();
             }
 
             function closeModal() {
                 document.getElementById('menuModal').style.display = 'none';
+                lastMenuName = '';
+            }
+
+            function resetIconSuggestions() {
+                const suggestionsDiv = document.getElementById('iconSuggestions');
+                suggestionsDiv.innerHTML = '<div class="suggestion-placeholder">💡 메뉴명을 입력하면 AI가 아이콘을 추천합니다</div>';
+                suggestionsDiv.classList.add('empty');
+                suggestionsDiv.classList.remove('has-items', 'loading');
+                document.getElementById('refreshBtn').style.display = 'none';
+            }
+
+            // 디바운스 처리
+            function debouncedSuggestIcon() {
+                clearTimeout(debounceTimer);
+                const menuName = document.getElementById('menuName').value.trim();
+                
+                if (!menuName) {
+                    resetIconSuggestions();
+                    return;
+                }
+                
+                debounceTimer = setTimeout(() => {
+                    if (menuName !== lastMenuName) {
+                        lastMenuName = menuName;
+                        suggestIconWithAI();
+                    }
+                }, 800); // 0.8초 대기
+            }
+
+            // AI 기반 아이콘 추천
+            async function suggestIconWithAI() {
+                const menuName = document.getElementById('menuName').value.trim();
+                
+                if (!menuName) {
+                    resetIconSuggestions();
+                    return;
+                }
+                
+                const suggestionsDiv = document.getElementById('iconSuggestions');
+                const refreshBtn = document.getElementById('refreshBtn');
+                
+                // 로딩 상태
+                suggestionsDiv.classList.remove('empty', 'has-items');
+                suggestionsDiv.classList.add('loading');
+                suggestionsDiv.innerHTML = '<div class="loading-spinner"></div>';
+                refreshBtn.disabled = true;
+                
+                try {
+                    // Claude API 호출
+                    const response = await fetch("https://api.anthropic.com/v1/messages", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            model: "claude-sonnet-4-20250514",
+                            max_tokens: 1000,
+                            messages: [
+                                {
+                                    role: "user",
+                                    content: `메뉴명 "${menuName}"에 가장 적합한 이모지 아이콘 10개를 추천해주세요.
+
+요구사항:
+1. 메뉴명의 의미와 기능을 정확히 파악하여 추천
+2. 직관적이고 시각적으로 명확한 이모지 선택
+3. 다양한 스타일 제공 (기본, 창의적, 전문적)
+4. 각 이모지에 대한 간단한 설명 포함
+
+응답 형식 (JSON만 반환, 다른 텍스트 없이):
+{
+  "icons": [
+    {"emoji": "🔧", "description": "도구/설정"},
+    {"emoji": "⚙️", "description": "설정"}
+  ]
+}
+
+중요: JSON 형식만 반환하고, 마크다운 코드 블록이나 다른 텍스트를 포함하지 마세요.`
+                                }
+                            ]
+                        })
+                    });
+
+                    const data = await response.json();
+                    
+                    if (!data.content || !data.content[0] || !data.content[0].text) {
+                        throw new Error('Invalid API response');
+                    }
+                    
+                    // JSON 파싱
+                    let iconData;
+                    const responseText = data.content[0].text.trim();
+                    
+                    // JSON 블록 제거
+                    const cleanedText = responseText
+                        .replace(/```json\n?/g, '')
+                        .replace(/```\n?/g, '')
+                        .trim();
+                    
+                    try {
+                        iconData = JSON.parse(cleanedText);
+                    } catch (e) {
+                        console.error('JSON Parse Error:', e);
+                        throw new Error('Failed to parse icon data');
+                    }
+                    
+                    if (!iconData.icons || !Array.isArray(iconData.icons)) {
+                        throw new Error('Invalid icon data format');
+                    }
+                    
+                    // 아이콘 표시
+                    displayIconSuggestions(iconData.icons);
+                    refreshBtn.style.display = 'inline-flex';
+                    refreshBtn.disabled = false;
+                    
+                } catch (error) {
+                    console.error('AI 추천 실패:', error);
+                    
+                    // 폴백: 기본 아이콘 추천
+                    const fallbackIcons = getFallbackIcons(menuName);
+                    displayIconSuggestions(fallbackIcons);
+                    refreshBtn.style.display = 'inline-flex';
+                    refreshBtn.disabled = false;
+                }
+            }
+
+            // 아이콘 표시
+            function displayIconSuggestions(icons) {
+                const suggestionsDiv = document.getElementById('iconSuggestions');
+                
+                if (!icons || icons.length === 0) {
+                    suggestionsDiv.innerHTML = '<div class="suggestion-placeholder">추천할 아이콘이 없습니다</div>';
+                    suggestionsDiv.classList.add('empty');
+                    suggestionsDiv.classList.remove('loading', 'has-items');
+                    return;
+                }
+                
+                suggestionsDiv.classList.remove('empty', 'loading');
+                suggestionsDiv.classList.add('has-items');
+                
+                suggestionsDiv.innerHTML = icons.map(icon => `
+                    <div class="icon-suggestion-item" onclick="selectIcon('${icon.emoji}')" title="${icon.description || ''}">
+                        <span class="emoji">${icon.emoji}</span>
+                        <span class="label">${icon.description || ''}</span>
+                    </div>
+                `).join('');
+            }
+
+            // 폴백 아이콘 (AI 실패 시)
+            function getFallbackIcons(menuName) {
+                const name = menuName.toLowerCase();
+                
+                // 키워드 기반 기본 매핑
+                const keywordMap = {
+                    'pdf': [{emoji: '📄', description: 'PDF'}, {emoji: '📑', description: '문서'}, {emoji: '🗂️', description: '파일'}],
+                    '병합': [{emoji: '🔗', description: '연결'}, {emoji: '📑', description: '병합'}, {emoji: '📋', description: '통합'}],
+                    '정규식': [{emoji: '🔍', description: '검색'}, {emoji: '🎯', description: '정확'}, {emoji: '🔎', description: '찾기'}],
+                    '코드': [{emoji: '💻', description: '코딩'}, {emoji: '⌨️', description: '개발'}, {emoji: '🖥️', description: '컴퓨터'}],
+                    'uuid': [{emoji: '🔑', description: '키'}, {emoji: '🎲', description: '랜덤'}, {emoji: '🆔', description: 'ID'}],
+                    '변환': [{emoji: '🔄', description: '변환'}, {emoji: '♻️', description: '재활용'}, {emoji: '↔️', description: '교환'}],
+                    '시간': [{emoji: '⏰', description: '시계'}, {emoji: '🕐', description: '시간'}, {emoji: '⏱️', description: '타이머'}],
+                    'ip': [{emoji: '🌐', description: '네트워크'}, {emoji: '🔌', description: '연결'}, {emoji: '💻', description: '컴퓨터'}],
+                    '관리': [{emoji: '⚙️', description: '설정'}, {emoji: '🛠️', description: '도구'}, {emoji: '📊', description: '관리'}],
+                };
+                
+                for (const [keyword, icons] of Object.entries(keywordMap)) {
+                    if (name.includes(keyword)) {
+                        return icons;
+                    }
+                }
+                
+                // 기본 아이콘
+                return [
+                    {emoji: '🔧', description: '도구'},
+                    {emoji: '⚙️', description: '설정'},
+                    {emoji: '📋', description: '목록'},
+                    {emoji: '🎯', description: '타겟'},
+                    {emoji: '✨', description: '특별'},
+                    {emoji: '🚀', description: '빠른'},
+                    {emoji: '📊', description: '데이터'},
+                    {emoji: '🎨', description: '디자인'}
+                ];
+            }
+
+            // 아이콘 선택
+            function selectIcon(icon) {
+                document.getElementById('menuIcon').value = icon;
+                
+                // 선택된 아이콘 하이라이트
+                document.querySelectorAll('.icon-suggestion-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                event.target.closest('.icon-suggestion-item').classList.add('selected');
             }
 
             document.getElementById('menuForm').addEventListener('submit', async function(e) {
