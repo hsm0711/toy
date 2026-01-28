@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>AI 코드 리뷰어</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
+        <style>
+            .code-editor {
+                font-family: 'Courier New', monospace;
+                background: #282c34;
+                color: #abb2bf;
+                padding: 1.5rem;
+                border-radius: 10px;
+                min-height: 300px;
+                font-size: 0.9rem;
+                line-height: 1.6;
+                overflow-x: auto;
+            }
+            
+            .review-section {
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                margin-top: 1.5rem;
+                border-left: 4px solid #667eea;
+                display: none;
+            }
+            
+            .review-section.show {
+                display: block;
+                animation: slideIn 0.5s;
+            }
+            
+            .review-category {
+                margin-bottom: 2rem;
+            }
+            
+            .review-category h4 {
+                color: #2d3748;
+                margin-bottom: 1rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .review-item {
+                background: #f8f9fa;
+                padding: 1rem;
+                margin-bottom: 0.75rem;
+                border-radius: 8px;
+                border-left: 3px solid #667eea;
+            }
+            
+            .severity-high {
+                border-left-color: #dc3545;
+            }
+            
+            .severity-medium {
+                border-left-color: #ffc107;
+            }
+            
+            .severity-low {
+                border-left-color: #28a745;
+            }
+            
+            .severity-badge {
+                display: inline-block;
+                padding: 0.25rem 0.5rem;
+                border-radius: 4px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                margin-right: 0.5rem;
+            }
+            
+            .severity-high .severity-badge {
+                background: #dc3545;
+                color: white;
+            }
+            
+            .severity-medium .severity-badge {
+                background: #ffc107;
+                color: #000;
+            }
+            
+            .severity-low .severity-badge {
+                background: #28a745;
+                color: white;
+            }
+            
+            .code-suggestion {
+                background: #282c34;
+                color: #abb2bf;
+                padding: 1rem;
+                border-radius: 6px;
+                margin-top: 0.5rem;
+                font-family: 'Courier New', monospace;
+                font-size: 0.85rem;
+                overflow-x: auto;
+            }
+            
+            .language-selector {
+                display: flex;
+                gap: 0.5rem;
+                margin-bottom: 1rem;
+                flex-wrap: wrap;
+            }
+            
+            .lang-btn {
+                padding: 0.5rem 1rem;
+                border: 2px solid #e2e8f0;
+                background: white;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 0.85rem;
+            }
+            
+            .lang-btn:hover {
+                border-color: #667eea;
+            }
+            
+            .lang-btn.active {
+                background: #667eea;
+                color: white;
+                border-color: #667eea;
+            }
+            
+            .score-display {
+                text-align: center;
+                padding: 2rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 12px;
+                margin-bottom: 2rem;
+            }
+            
+            .score-number {
+                font-size: 4rem;
+                font-weight: 700;
+                margin: 0;
+            }
+            
+            .score-label {
+                font-size: 1.2rem;
+                opacity: 0.9;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="tool-container">
+            <div class="page-header">
+                <h2>👨‍💻 AI 코드 리뷰어</h2>
+                <p class="description">Claude AI가 코드를 분석하고 개선 제안을 제공합니다.</p>
+                <div class="usage-badge">🤖 무료 AI 리뷰 - 사용량 무제한</div>
+            </div>
+
+            <div class="tool-section card">
+                <h3>프로그래밍 언어 선택</h3>
+                <div class="language-selector">
+                    <button class="lang-btn active" data-lang="java" onclick="selectLanguage('java')">☕ Java</button>
+                    <button class="lang-btn" data-lang="python" onclick="selectLanguage('python')">🐍 Python</button>
+                    <button class="lang-btn" data-lang="javascript" onclick="selectLanguage('javascript')">📜 JavaScript</button>
+                    <button class="lang-btn" data-lang="typescript" onclick="selectLanguage('typescript')">🔷 TypeScript</button>
+                    <button class="lang-btn" data-lang="cpp" onclick="selectLanguage('cpp')">⚡ C++</button>
+                    <button class="lang-btn" data-lang="csharp" onclick="selectLanguage('csharp')">🔷 C#</button>
+                    <button class="lang-btn" data-lang="go" onclick="selectLanguage('go')">🐹 Go</button>
+                    <button class="lang-btn" data-lang="rust" onclick="selectLanguage('rust')">🦀 Rust</button>
+                </div>
+
+                <div class="input-group">
+                    <label>코드 입력</label>
+                    <textarea id="codeInput" class="code-editor" placeholder="리뷰받을 코드를 입력하세요..."></textarea>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="reviewCode()" id="reviewBtn">
+                        🔍 AI 코드 리뷰 시작
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearCode()">🗑️ 초기화</button>
+                </div>
+
+                <div class="streaming-indicator" id="streamingIndicator" style="display: none;">
+                    <div class="streaming-dot"></div>
+                    <span>AI가 코드를 분석 중입니다...</span>
+                </div>
+
+                <div class="review-section" id="reviewSection">
+                    <div class="score-display" id="scoreDisplay" style="display: none;">
+                        <div class="score-number" id="scoreNumber">-</div>
+                        <div class="score-label">코드 품질 점수 (100점 만점)</div>
+                    </div>
+                    
+                    <div id="reviewContent"></div>
+                </div>
+            </div>
+
+            <div class="examples" style="background: #e7f3ff;">
+                <h4 style="color: #004085;">💡 예제 코드 (클릭하여 입력)</h4>
+                <div class="example-item" onclick="fillCodeExample('java')">
+                    ☕ Java 메서드 예제
+                </div>
+                <div class="example-item" onclick="fillCodeExample('python')">
+                    🐍 Python 함수 예제
+                </div>
+                <div class="example-item" onclick="fillCodeExample('javascript')">
+                    📜 JavaScript 함수 예제
+                </div>
+            </div>
+            
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
+        <script>
+            let currentLanguage = 'java';
+
+            function selectLanguage(lang) {
+                currentLanguage = lang;
+                
+                document.querySelectorAll('.lang-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-lang="${lang}"]`).classList.add('active');
+            }
+
+            async function reviewCode() {
+                const code = document.getElementById('codeInput').value.trim();
+                
+                if (!code) {
+                    UiUtils.showError('리뷰할 코드를 입력하세요.');
+                    return;
+                }
+                
+                const reviewBtn = document.getElementById('reviewBtn');
+                const reviewSection = document.getElementById('reviewSection');
+                const streamingIndicator = document.getElementById('streamingIndicator');
+                const reviewContent = document.getElementById('reviewContent');
+                
+                try {
+                    UiUtils.hideError();
+                    reviewBtn.disabled = true;
+                    reviewBtn.textContent = '⏳ 분석 중...';
+                    streamingIndicator.style.display = 'flex';
+                    reviewSection.classList.remove('show');
+                    reviewContent.innerHTML = '';
+                    
+                    const prompt = `당신은 전문 코드 리뷰어입니다. 다음 ${getLanguageName(currentLanguage)} 코드를 분석하고 상세한 리뷰를 제공해주세요.
+
+코드:
+\`\`\`${currentLanguage}
+${code}
+\`\`\`
+
+다음 형식으로 리뷰해주세요:
+
+1. **코드 품질 점수** (0-100점): [점수]점
+   - 간단한 평가
+
+2. **발견된 문제점**
+   - 🔴 심각: [심각한 버그나 보안 이슈]
+   - 🟡 보통: [개선이 필요한 부분]
+   - 🟢 경미: [사소한 개선사항]
+
+3. **개선 제안**
+   - 구체적인 개선 방법
+   - 개선된 코드 예시
+
+4. **긍정적인 부분**
+   - 잘 작성된 부분
+
+5. **전체 평가**
+   - 종합 의견
+
+명확하고 구체적으로 작성해주세요.`;
+                    
+                    const response = await fetch("https://api.anthropic.com/v1/messages", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            model: "claude-sonnet-4-20250514",
+                            max_tokens: 3000,
+                            messages: [
+                                {
+                                    role: "user",
+                                    content: prompt
+                                }
+                            ]
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!data.content || !data.content[0]) {
+                        throw new Error('AI 응답을 받을 수 없습니다.');
+                    }
+                    
+                    const result = data.content[0].text;
+                    
+                    // 점수 추출 및 표시
+                    const scoreMatch = result.match(/(\d+)점/);
+                    if (scoreMatch) {
+                        const score = parseInt(scoreMatch[1]);
+                        document.getElementById('scoreNumber').textContent = score;
+                        document.getElementById('scoreDisplay').style.display = 'block';
+                    }
+                    
+                    // 결과를 마크다운 스타일로 파싱하여 표시
+                    reviewContent.innerHTML = formatReviewResult(result);
+                    reviewSection.classList.add('show');
+                    
+                    UiUtils.showSuccess('코드 리뷰가 완료되었습니다!');
+                    
+                } catch (error) {
+                    console.error('AI 리뷰 오류:', error);
+                    UiUtils.showError('리뷰 중 오류가 발생했습니다: ' + error.message);
+                } finally {
+                    reviewBtn.disabled = false;
+                    reviewBtn.textContent = '🔍 AI 코드 리뷰 시작';
+                    streamingIndicator.style.display = 'none';
+                }
+            }
+
+            function formatReviewResult(text) {
+                // 간단한 마크다운 스타일 변환
+                let html = text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n\n/g, '</p><p>')
+                    .replace(/\n/g, '<br>');
+                
+                // 코드 블록 처리
+                html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, 
+                    '<div class="code-suggestion">$2</div>');
+                
+                // 이모지 기반 심각도 표시
+                html = html.replace(/🔴 (.*?)(?=<br>|$)/g, 
+                    '<div class="review-item severity-high"><span class="severity-badge">심각</span>$1</div>');
+                html = html.replace(/🟡 (.*?)(?=<br>|$)/g, 
+                    '<div class="review-item severity-medium"><span class="severity-badge">보통</span>$1</div>');
+                html = html.replace(/🟢 (.*?)(?=<br>|$)/g, 
+                    '<div class="review-item severity-low"><span class="severity-badge">경미</span>$1</div>');
+                
+                return '<p>' + html + '</p>';
+            }
+
+            function getLanguageName(lang) {
+                const names = {
+                    'java': 'Java',
+                    'python': 'Python',
+                    'javascript': 'JavaScript',
+                    'typescript': 'TypeScript',
+                    'cpp': 'C++',
+                    'csharp': 'C#',
+                    'go': 'Go',
+                    'rust': 'Rust'
+                };
+                return names[lang] || lang;
+            }
+
+            function clearCode() {
+                document.getElementById('codeInput').value = '';
+                document.getElementById('reviewSection').classList.remove('show');
+                document.getElementById('scoreDisplay').style.display = 'none';
+                UiUtils.hideError();
+            }
+
+            function fillCodeExample(lang) {
+                const examples = {
+                    'java': `public class UserService {
+    private List<User> users = new ArrayList<>();
+    
+    public void addUser(String name, String email) {
+        User user = new User();
+        user.name = name;
+        user.email = email;
+        users.add(user);
+    }
+    
+    public User findUser(String email) {
+        for(int i = 0; i < users.size(); i++) {
+            if(users.get(i).email == email) {
+                return users.get(i);
+            }
+        }
+        return null;
+    }
+}`,
+                    'python': `def calculate_average(numbers):
+    total = 0
+    for num in numbers:
+        total = total + num
+    avg = total / len(numbers)
+    return avg
+
+def process_data(data):
+    result = []
+    for item in data:
+        if item > 0:
+            result.append(item * 2)
+    return result`,
+                    'javascript': `function fetchUserData(userId) {
+    fetch('/api/users/' + userId)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('username').innerHTML = data.name;
+            document.getElementById('email').innerHTML = data.email;
+        })
+        .catch(error => {
+            console.log('Error: ' + error);
+        });
+}
+
+function validateEmail(email) {
+    if (email.indexOf('@') > -1) {
+        return true;
+    }
+    return false;
+}`
+                };
+                
+                document.getElementById('codeInput').value = examples[lang] || examples['java'];
+                selectLanguage(lang);
+            }
+        </script>
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>AI 텍스트 분석</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
+        <style>
+            .analysis-output {
+                background: white;
+                padding: 1.5rem;
+                border-radius: 10px;
+                margin-top: 1.5rem;
+                border: 2px solid #e2e8f0;
+                min-height: 200px;
+                white-space: pre-wrap;
+                line-height: 1.8;
+                display: none;
+            }
+            
+            .analysis-output.show {
+                display: block;
+                animation: fadeIn 0.5s;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .usage-badge {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+            }
+            
+            .usage-warning {
+                background: #fff3cd;
+                border-left: 4px solid #ffc107;
+                padding: 1rem;
+                margin: 1rem 0;
+                border-radius: 6px;
+                display: none;
+            }
+            
+            .usage-warning.show {
+                display: block;
+            }
+            
+            .analysis-tabs {
+                display: flex;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+                flex-wrap: wrap;
+            }
+            
+            .tab-button {
+                padding: 0.75rem 1.5rem;
+                border: 2px solid #e2e8f0;
+                background: white;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: all 0.3s;
+                font-weight: 500;
+            }
+            
+            .tab-button:hover {
+                border-color: #667eea;
+                background: #f7faff;
+            }
+            
+            .tab-button.active {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border-color: #667eea;
+            }
+            
+            .char-count {
+                text-align: right;
+                font-size: 0.85rem;
+                color: #6c757d;
+                margin-top: 0.5rem;
+            }
+            
+            .streaming-indicator {
+                display: none;
+                align-items: center;
+                gap: 0.5rem;
+                color: #667eea;
+                font-weight: 500;
+                margin-top: 1rem;
+            }
+            
+            .streaming-indicator.show {
+                display: flex;
+            }
+            
+            .streaming-dot {
+                width: 8px;
+                height: 8px;
+                background: #667eea;
+                border-radius: 50%;
+                animation: pulse 1.5s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.3; }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="tool-container">
+            <div class="page-header">
+                <h2>✨ AI 텍스트 분석기</h2>
+                <p class="description">Claude AI가 텍스트를 분석하고 요약합니다.</p>
+                <div class="usage-badge">🤖 무료 AI 분석 - 사용량 무제한</div>
+            </div>
+
+            <div class="usage-warning" id="usageWarning">
+                <strong>⚠️ 주의:</strong> AI 분석은 브라우저에서 직접 수행되며, 큰 텍스트는 처리 시간이 길어질 수 있습니다.
+            </div>
+
+            <div class="tool-section card">
+                <h3>분석 유형 선택</h3>
+                <div class="analysis-tabs">
+                    <button class="tab-button active" data-type="summary" onclick="selectAnalysisType('summary')">
+                        📝 요약
+                    </button>
+                    <button class="tab-button" data-type="keywords" onclick="selectAnalysisType('keywords')">
+                        🔑 키워드 추출
+                    </button>
+                    <button class="tab-button" data-type="sentiment" onclick="selectAnalysisType('sentiment')">
+                        😊 감정 분석
+                    </button>
+                    <button class="tab-button" data-type="translate" onclick="selectAnalysisType('translate')">
+                        🌐 번역 (영→한)
+                    </button>
+                    <button class="tab-button" data-type="improve" onclick="selectAnalysisType('improve')">
+                        ✍️ 문장 개선
+                    </button>
+                    <button class="tab-button" data-type="explain" onclick="selectAnalysisType('explain')">
+                        💡 쉬운 설명
+                    </button>
+                </div>
+
+                <div class="input-group">
+                    <label>분석할 텍스트 입력</label>
+                    <textarea id="textInput" placeholder="여기에 텍스트를 입력하세요..." style="min-height: 200px;" oninput="updateCharCount()"></textarea>
+                    <div class="char-count" id="charCount">0 글자</div>
+                </div>
+
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="analyzeText()" id="analyzeBtn">
+                        <span id="analyzeBtnText">✨ AI 분석 시작</span>
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearAll()">🗑️ 초기화</button>
+                </div>
+
+                <div class="streaming-indicator" id="streamingIndicator">
+                    <div class="streaming-dot"></div>
+                    <span>AI가 분석 중입니다...</span>
+                </div>
+
+                <div class="analysis-output" id="analysisOutput"></div>
+            </div>
+
+            <div class="examples" style="background: #e7f3ff;">
+                <h4 style="color: #004085;">💡 예제 텍스트 (클릭하여 입력)</h4>
+                <div class="example-item" onclick="fillExample('article')">
+                    📰 긴 기사 요약 예제
+                </div>
+                <div class="example-item" onclick="fillExample('email')">
+                    📧 이메일 문장 개선 예제
+                </div>
+                <div class="example-item" onclick="fillExample('review')">
+                    ⭐ 리뷰 감정 분석 예제
+                </div>
+            </div>
+            
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
+        <script>
+            let currentAnalysisType = 'summary';
+            let requestCount = 0;
+            const MAX_FREE_REQUESTS = 1000; // 넉넉한 제한
+
+            function selectAnalysisType(type) {
+                currentAnalysisType = type;
+                
+                // 탭 활성화
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-type="${type}"]`).classList.add('active');
+                
+                // 버튼 텍스트 변경
+                const btnTexts = {
+                    'summary': '📝 요약하기',
+                    'keywords': '🔑 키워드 추출',
+                    'sentiment': '😊 감정 분석',
+                    'translate': '🌐 번역하기',
+                    'improve': '✍️ 문장 개선',
+                    'explain': '💡 쉽게 설명'
+                };
+                document.getElementById('analyzeBtnText').textContent = `✨ ${btnTexts[type] || 'AI 분석'}`;
+            }
+
+            function updateCharCount() {
+                const text = document.getElementById('textInput').value;
+                document.getElementById('charCount').textContent = `${text.length} 글자`;
+                
+                if (text.length > 5000) {
+                    UiUtils.showError('텍스트가 너무 깁니다. 5000자 이하로 줄여주세요.');
+                } else {
+                    UiUtils.hideError();
+                }
+            }
+
+            async function analyzeText() {
+                const text = document.getElementById('textInput').value.trim();
+                
+                if (!text) {
+                    UiUtils.showError('분석할 텍스트를 입력하세요.');
+                    return;
+                }
+                
+                if (text.length > 5000) {
+                    UiUtils.showError('텍스트가 너무 깁니다. 5000자 이하로 줄여주세요.');
+                    return;
+                }
+                
+                // 사용량 체크 (선택적)
+                requestCount++;
+                if (requestCount > MAX_FREE_REQUESTS) {
+                    UiUtils.showError('무료 사용 한도를 초과했습니다. 나중에 다시 시도해주세요.');
+                    return;
+                }
+                
+                const analyzeBtn = document.getElementById('analyzeBtn');
+                const outputDiv = document.getElementById('analysisOutput');
+                const streamingIndicator = document.getElementById('streamingIndicator');
+                
+                try {
+                    UiUtils.hideError();
+                    analyzeBtn.disabled = true;
+                    analyzeBtn.textContent = '⏳ 분석 중...';
+                    streamingIndicator.classList.add('show');
+                    outputDiv.classList.remove('show');
+                    outputDiv.textContent = '';
+                    
+                    // Claude API 호출
+                    const prompt = buildPrompt(currentAnalysisType, text);
+                    
+                    const response = await fetch("https://api.anthropic.com/v1/messages", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({
+                            model: "claude-sonnet-4-20250514",
+                            max_tokens: 2000,
+                            messages: [
+                                {
+                                    role: "user",
+                                    content: prompt
+                                }
+                            ]
+                        })
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (!data.content || !data.content[0]) {
+                        throw new Error('AI 응답을 받을 수 없습니다.');
+                    }
+                    
+                    const result = data.content[0].text;
+                    
+                    // 결과 표시
+                    outputDiv.textContent = result;
+                    outputDiv.classList.add('show');
+                    
+                    UiUtils.showSuccess('분석이 완료되었습니다!');
+                    
+                } catch (error) {
+                    console.error('AI 분석 오류:', error);
+                    UiUtils.showError('분석 중 오류가 발생했습니다: ' + error.message);
+                } finally {
+                    analyzeBtn.disabled = false;
+                    selectAnalysisType(currentAnalysisType);
+                    streamingIndicator.classList.remove('show');
+                }
+            }
+
+            function buildPrompt(type, text) {
+                const prompts = {
+                    'summary': `다음 텍스트를 3-5문장으로 핵심만 간결하게 요약해주세요:\n\n${text}`,
+                    
+                    'keywords': `다음 텍스트에서 가장 중요한 키워드 10개를 추출하고, 각 키워드에 대해 간단히 설명해주세요:\n\n${text}`,
+                    
+                    'sentiment': `다음 텍스트의 감정을 분석하고 (긍정/부정/중립), 그 이유를 설명해주세요:\n\n${text}`,
+                    
+                    'translate': `다음 텍스트를 한국어로 자연스럽게 번역해주세요:\n\n${text}`,
+                    
+                    'improve': `다음 텍스트를 더 명확하고 전문적으로 개선해주세요. 원래 의미는 유지하되 문법, 어휘, 구조를 개선해주세요:\n\n${text}`,
+                    
+                    'explain': `다음 텍스트를 중학생도 이해할 수 있도록 쉽게 설명해주세요. 어려운 용어는 풀어서 설명해주세요:\n\n${text}`
+                };
+                
+                return prompts[type] || prompts['summary'];
+            }
+
+            function clearAll() {
+                document.getElementById('textInput').value = '';
+                document.getElementById('analysisOutput').textContent = '';
+                document.getElementById('analysisOutput').classList.remove('show');
+                updateCharCount();
+                UiUtils.hideError();
+            }
+
+            function fillExample(type) {
+                const examples = {
+                    'article': `인공지능 기술이 빠르게 발전하면서 우리 일상생활에 많은 변화를 가져오고 있습니다. 특히 자연어 처리 기술은 번역, 요약, 대화 등 다양한 분야에서 활용되고 있으며, 이제는 사람과 구분하기 어려울 정도의 수준에 도달했습니다. 하지만 이러한 기술 발전과 함께 윤리적 문제, 일자리 대체 우려, 개인정보 보호 등 여러 과제도 함께 제기되고 있습니다. 전문가들은 AI 기술이 인류에게 더 나은 미래를 제공하기 위해서는 기술 발전과 함께 적절한 규제와 윤리 기준이 마련되어야 한다고 강조합니다.`,
+                    
+                    'email': `안녕하세요. 저는 귀사의 제품에 관심이 있어서 몇 가지 질문이 있습니다. 가격이 얼마인지, 그리고 배송은 언제 되는지 알고 싶습니다. 빠른 답변 부탁드립니다.`,
+                    
+                    'review': `이 제품 정말 최고예요! 배송도 빠르고, 품질도 기대 이상입니다. 가격 대비 성능이 너무 좋아서 친구들한테도 추천했어요. 다만 설명서가 좀 부실한 것 같아요. 그래도 전반적으로 매우 만족합니다. 다음에도 이 브랜드 제품을 구매할 생각입니다.`
+                };
+                
+                document.getElementById('textInput').value = examples[type] || examples['article'];
+                updateCharCount();
+            }
+
+            // 초기화
+            window.onload = function() {
+                updateCharCount();
+            };
+        </script>
+    </th:block>
+</body>
+</html>
