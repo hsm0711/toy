@@ -33,7 +33,7 @@
             .usage-badge {
                 display: inline-block;
                 padding: 0.5rem 1rem;
-                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                 color: white;
                 border-radius: 20px;
                 font-size: 0.85rem;
@@ -42,15 +42,15 @@
             }
             
             .info-box {
-                background: #d1f2eb;
-                border-left: 4px solid #28a745;
+                background: #e7f3ff;
+                border-left: 4px solid #667eea;
                 padding: 1rem;
                 margin: 1rem 0;
                 border-radius: 6px;
             }
             
             .info-box strong {
-                color: #155724;
+                color: #004085;
             }
             
             .analysis-tabs {
@@ -121,13 +121,14 @@
         <div class="tool-container">
             <div class="page-header">
                 <h2>✨ AI 텍스트 분석기</h2>
-                <p class="description">무료 AI가 텍스트를 분석하고 요약합니다.</p>
-                <div class="usage-badge">🤖 완전 무료 - Transformers.js 기반</div>
+                <p class="description">Hugging Face AI가 텍스트를 분석하고 요약합니다.</p>
+                <div class="usage-badge">🤖 무료 - Hugging Face API</div>
             </div>
 
             <div class="info-box">
-                <strong>✅ 완전 무료:</strong> 브라우저에서 직접 실행되는 AI 모델을 사용합니다. API 키나 서버 비용이 없습니다!<br>
-                <strong>⏱️ 최초 실행:</strong> 각 기능을 처음 사용할 때 모델을 다운로드합니다 (5-15초 소요, 이후 즉시 실행)
+                <strong>✅ 무료 API:</strong> Hugging Face Inference API (무료 티어) 사용<br>
+                <strong>🤖 AI 모델:</strong> BART (요약), DistilBERT (감정), OPUS-MT (번역) 등<br>
+                <strong>⚡ 빠른 처리:</strong> 서버에서 실행되어 빠르고 안정적입니다
             </div>
 
             <div class="tool-section card">
@@ -193,7 +194,6 @@
 
     <th:block layout:fragment="extra-js">
         <script th:src="@{/js/common-utils.js}"></script>
-        <script th:src="@{/js/ai-utils.js}"></script>
         
         <script>
             let currentAnalysisType = 'summary';
@@ -253,38 +253,18 @@
                     outputDiv.classList.remove('show');
                     outputDiv.textContent = '';
                     
-                    // Transformers.js AI 분석 (브라우저에서 직접 실행)
-                    let result;
-                    
-                    switch(currentAnalysisType) {
-                        case 'summary':
-                            result = await window.aiUtils.summarize(text);
-                            break;
-                        case 'keywords':
-                            result = window.aiUtils.extractKeywords(text);
-                            break;
-                        case 'sentiment':
-                            result = await window.aiUtils.analyzeSentiment(text);
-                            break;
-                        case 'translate':
-                            result = await window.aiUtils.translate(text);
-                            break;
-                        case 'improve':
-                            result = window.aiUtils.improveSentence(text);
-                            break;
-                        case 'explain':
-                            result = window.aiUtils.explainSimply(text);
-                            break;
-                        default:
-                            result = await window.aiUtils.summarize(text);
-                    }
+                    // 서버 API 호출 (Hugging Face Inference API)
+                    const data = await ApiClient.postJson('/ai-text-analyzer/api/analyze', {
+                        text: text,
+                        analysisType: currentAnalysisType
+                    });
 
-                    if (result.success) {
-                        outputDiv.textContent = result.result;
+                    if (data.success) {
+                        outputDiv.textContent = data.result;
                         outputDiv.classList.add('show');
                         UiUtils.showSuccess('분석이 완료되었습니다!');
                     } else {
-                        UiUtils.showError(result.message || '분석 중 오류가 발생했습니다.');
+                        UiUtils.showError(data.message || '분석 중 오류가 발생했습니다.');
                     }
                 } catch (error) {
                     console.error('AI 분석 오류:', error);

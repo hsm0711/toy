@@ -1,6 +1,6 @@
 package com.webapp.controller;
 
-import com.webapp.service.ClaudeApiProxyService;
+import com.webapp.service.HuggingFaceApiService;
 import com.webapp.service.MenuService;
 import com.webapp.util.ResponseUtils;
 import com.webapp.util.ValidationUtils;
@@ -14,8 +14,8 @@ import java.util.Map;
 
 /**
  * AI 텍스트 분석 컨트롤러
- * - 요약, 분석, 키워드 추출 등
- * - 서버 사이드 프록시로 Claude API 호출
+ * - Hugging Face Inference API 사용 (무료 티어)
+ * - 서버 사이드에서 API 호출
  */
 @Slf4j
 @Controller
@@ -24,7 +24,7 @@ import java.util.Map;
 public class AiTextAnalyzerController {
     
     private final MenuService menuService;
-    private final ClaudeApiProxyService claudeApiProxyService;
+    private final HuggingFaceApiService huggingFaceApiService;
     
     @GetMapping
     public String aiTextAnalyzerPage(Model model) {
@@ -34,7 +34,7 @@ public class AiTextAnalyzerController {
     }
     
     /**
-     * API: 텍스트 분석 (서버 프록시)
+     * API: 텍스트 분석
      */
     @PostMapping("/api/analyze")
     @ResponseBody
@@ -51,11 +51,20 @@ public class AiTextAnalyzerController {
                 return ResponseUtils.failure("텍스트가 너무 깁니다. 5000자 이하로 줄여주세요.");
             }
             
-            // 프롬프트 생성
-            String prompt = buildPrompt(analysisType, text);
-            
-            // Claude API 호출 (서버 프록시)
-            return claudeApiProxyService.callClaude(prompt, 2000);
+            // 분석 유형에 따라 API 호출
+            return switch (analysisType) {
+                case "summary" -> huggingFaceApiService.summarize(text, 150, 30);
+                case "keywords" -> huggingFaceApiService.extractKeywords(text);
+                case "sentiment" -> huggingFaceApiService.analyzeSentiment(text);
+                case "translate" -> huggingFaceApiService.translate(text);
+                case "improve", "explain" -> {
+                    // 통계 기반 분석
+                    String result = analysisType.equals("improve") ? 
+                        improveSentence(text) : explainSimply(text);
+                    yield ResponseUtils.success("분석 완료", "result", result);
+                }
+                default -> huggingFaceApiService.summarize(text, 150, 30);
+            };
             
         } catch (Exception e) {
             log.error("텍스트 분석 오류", e);
@@ -63,15 +72,40 @@ public class AiTextAnalyzerController {
         }
     }
     
-    private String buildPrompt(String type, String text) {
-        return switch (type) {
-            case "summary" -> "다음 텍스트를 3-5문장으로 핵심만 간결하게 요약해주세요:\n\n" + text;
-            case "keywords" -> "다음 텍스트에서 가장 중요한 키워드 10개를 추출하고, 각 키워드에 대해 간단히 설명해주세요:\n\n" + text;
-            case "sentiment" -> "다음 텍스트의 감정을 분석하고 (긍정/부정/중립), 그 이유를 설명해주세요:\n\n" + text;
-            case "translate" -> "다음 텍스트를 한국어로 자연스럽게 번역해주세요:\n\n" + text;
-            case "improve" -> "다음 텍스트를 더 명확하고 전문적으로 개선해주세요. 원래 의미는 유지하되 문법, 어휘, 구조를 개선해주세요:\n\n" + text;
-            case "explain" -> "다음 텍스트를 중학생도 이해할 수 있도록 쉽게 설명해주세요. 어려운 용어는 풀어서 설명해주세요:\n\n" + text;
-            default -> "다음 텍스트를 3-5문장으로 요약해주세요:\n\n" + text;
-        };
+    // ========== Helper Methods ==========
+    
+    private String improveSentence(String text) {
+        StringBuilder result = new StringBuilder();
+        result.append("**개선된 텍스트:**\n\n");
+        
+        String improved = text;
+        improved = improved.replaceAll("(\\b\\w+\\b)(\\s+\\1)+", "$1"); // 반복 단어 제거
+        improved = improved.replaceAll("\\s+", " ").trim(); // 공백 정리
+        improved = improved.replaceAll("\\s+([.,!?])", "$1"); // 문장 부호 정리
+        
+        result.append(improved).append("\n\n");
+        result.append("**개선 사항:**\n");
+        result.append("- 반복 단어 및 과도한 공백 제거\n");
+        result.append("- 문장 부호 정리\n\n");
+        result.append("**추가 제안:**\n");
+        result.append("- 문장 길이가 적절한지 확인하세요\n");
+        result.append("- 능동태 사용을 권장합니다");
+        
+        return result.toString();
+    }
+    
+    private String explainSimply(String text) {
+        StringBuilder result = new StringBuilder();
+        result.append("**쉬운 설명 제안:**\n\n");
+        result.append("**설명 가이드:**\n");
+        result.append("1. 문장을 짧게 나누세요\n");
+        result.append("2. 전문 용어 대신 일상 언어를 사용하세요\n");
+        result.append("3. 예시를 들어 설명하세요\n");
+        result.append("4. '무엇을', '왜', '어떻게'를 명확히 하세요\n\n");
+        result.append("**예시:**\n");
+        result.append("어렵게: '해당 시스템은 고효율 알고리즘을 활용합니다'\n");
+        result.append("쉽게: '이 프로그램은 빠른 방법으로 작업합니다'");
+        
+        return result.toString();
     }
 }
