@@ -33,7 +33,7 @@
             .usage-badge {
                 display: inline-block;
                 padding: 0.5rem 1rem;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
                 color: white;
                 border-radius: 20px;
                 font-size: 0.85rem;
@@ -41,17 +41,16 @@
                 margin-bottom: 1rem;
             }
             
-            .usage-warning {
-                background: #fff3cd;
-                border-left: 4px solid #ffc107;
+            .info-box {
+                background: #d1f2eb;
+                border-left: 4px solid #28a745;
                 padding: 1rem;
                 margin: 1rem 0;
                 border-radius: 6px;
-                display: none;
             }
             
-            .usage-warning.show {
-                display: block;
+            .info-box strong {
+                color: #155724;
             }
             
             .analysis-tabs {
@@ -122,12 +121,13 @@
         <div class="tool-container">
             <div class="page-header">
                 <h2>✨ AI 텍스트 분석기</h2>
-                <p class="description">Claude AI가 텍스트를 분석하고 요약합니다.</p>
-                <div class="usage-badge">🤖 무료 AI 분석 - 사용량 무제한</div>
+                <p class="description">무료 AI가 텍스트를 분석하고 요약합니다.</p>
+                <div class="usage-badge">🤖 완전 무료 - Transformers.js 기반</div>
             </div>
 
-            <div class="usage-warning" id="usageWarning">
-                <strong>⚠️ 주의:</strong> AI 분석은 브라우저에서 직접 수행되며, 큰 텍스트는 처리 시간이 길어질 수 있습니다.
+            <div class="info-box">
+                <strong>✅ 완전 무료:</strong> 브라우저에서 직접 실행되는 AI 모델을 사용합니다. API 키나 서버 비용이 없습니다!<br>
+                <strong>⏱️ 최초 실행:</strong> 각 기능을 처음 사용할 때 모델을 다운로드합니다 (5-15초 소요, 이후 즉시 실행)
             </div>
 
             <div class="tool-section card">
@@ -193,22 +193,19 @@
 
     <th:block layout:fragment="extra-js">
         <script th:src="@{/js/common-utils.js}"></script>
+        <script th:src="@{/js/ai-utils.js}"></script>
         
         <script>
             let currentAnalysisType = 'summary';
-            let requestCount = 0;
-            const MAX_FREE_REQUESTS = 1000; // 넉넉한 제한
 
             function selectAnalysisType(type) {
                 currentAnalysisType = type;
                 
-                // 탭 활성화
                 document.querySelectorAll('.tab-button').forEach(btn => {
                     btn.classList.remove('active');
                 });
                 document.querySelector(`[data-type="${type}"]`).classList.add('active');
                 
-                // 버튼 텍스트 변경
                 const btnTexts = {
                     'summary': '📝 요약하기',
                     'keywords': '🔑 키워드 추출',
@@ -244,13 +241,6 @@
                     return;
                 }
                 
-                // 사용량 체크 (선택적)
-                requestCount++;
-                if (requestCount > MAX_FREE_REQUESTS) {
-                    UiUtils.showError('무료 사용 한도를 초과했습니다. 나중에 다시 시도해주세요.');
-                    return;
-                }
-                
                 const analyzeBtn = document.getElementById('analyzeBtn');
                 const outputDiv = document.getElementById('analysisOutput');
                 const streamingIndicator = document.getElementById('streamingIndicator');
@@ -263,18 +253,38 @@
                     outputDiv.classList.remove('show');
                     outputDiv.textContent = '';
                     
-                    // Claude API 호출
-                    const data = await ApiClient.postJson('/ai-text-analyzer/api/analyze', {
-                        text: text,
-                        analysisType: currentAnalysisType
-                    });
+                    // Transformers.js AI 분석 (브라우저에서 직접 실행)
+                    let result;
+                    
+                    switch(currentAnalysisType) {
+                        case 'summary':
+                            result = await window.aiUtils.summarize(text);
+                            break;
+                        case 'keywords':
+                            result = window.aiUtils.extractKeywords(text);
+                            break;
+                        case 'sentiment':
+                            result = await window.aiUtils.analyzeSentiment(text);
+                            break;
+                        case 'translate':
+                            result = await window.aiUtils.translate(text);
+                            break;
+                        case 'improve':
+                            result = window.aiUtils.improveSentence(text);
+                            break;
+                        case 'explain':
+                            result = window.aiUtils.explainSimply(text);
+                            break;
+                        default:
+                            result = await window.aiUtils.summarize(text);
+                    }
 
-                    if (data.success) {
-                        outputDiv.textContent = data.result;
+                    if (result.success) {
+                        outputDiv.textContent = result.result;
                         outputDiv.classList.add('show');
                         UiUtils.showSuccess('분석이 완료되었습니다!');
                     } else {
-                        UiUtils.showError(data.message || '분석 중 오류가 발생했습니다.');
+                        UiUtils.showError(result.message || '분석 중 오류가 발생했습니다.');
                     }
                 } catch (error) {
                     console.error('AI 분석 오류:', error);
@@ -284,24 +294,6 @@
                     selectAnalysisType(currentAnalysisType);
                     streamingIndicator.classList.remove('show');
                 }
-            }
-
-            function buildPrompt(type, text) {
-                const prompts = {
-                    'summary': `다음 텍스트를 3-5문장으로 핵심만 간결하게 요약해주세요:\n\n${text}`,
-                    
-                    'keywords': `다음 텍스트에서 가장 중요한 키워드 10개를 추출하고, 각 키워드에 대해 간단히 설명해주세요:\n\n${text}`,
-                    
-                    'sentiment': `다음 텍스트의 감정을 분석하고 (긍정/부정/중립), 그 이유를 설명해주세요:\n\n${text}`,
-                    
-                    'translate': `다음 텍스트를 한국어로 자연스럽게 번역해주세요:\n\n${text}`,
-                    
-                    'improve': `다음 텍스트를 더 명확하고 전문적으로 개선해주세요. 원래 의미는 유지하되 문법, 어휘, 구조를 개선해주세요:\n\n${text}`,
-                    
-                    'explain': `다음 텍스트를 중학생도 이해할 수 있도록 쉽게 설명해주세요. 어려운 용어는 풀어서 설명해주세요:\n\n${text}`
-                };
-                
-                return prompts[type] || prompts['summary'];
             }
 
             function clearAll() {
@@ -314,18 +306,17 @@
 
             function fillExample(type) {
                 const examples = {
-                    'article': `인공지능 기술이 빠르게 발전하면서 우리 일상생활에 많은 변화를 가져오고 있습니다. 특히 자연어 처리 기술은 번역, 요약, 대화 등 다양한 분야에서 활용되고 있으며, 이제는 사람과 구분하기 어려울 정도의 수준에 도달했습니다. 하지만 이러한 기술 발전과 함께 윤리적 문제, 일자리 대체 우려, 개인정보 보호 등 여러 과제도 함께 제기되고 있습니다. 전문가들은 AI 기술이 인류에게 더 나은 미래를 제공하기 위해서는 기술 발전과 함께 적절한 규제와 윤리 기준이 마련되어야 한다고 강조합니다.`,
+                    'article': `Artificial intelligence technology is rapidly advancing and bringing many changes to our daily lives. Natural language processing technology is being used in various fields such as translation, summarization, and conversation, and has now reached a level that is difficult to distinguish from humans.`,
                     
-                    'email': `안녕하세요. 저는 귀사의 제품에 관심이 있어서 몇 가지 질문이 있습니다. 가격이 얼마인지, 그리고 배송은 언제 되는지 알고 싶습니다. 빠른 답변 부탁드립니다.`,
+                    'email': `Hello. I am interested in your product and have a few questions. I would like to know how much it costs and when it will be shipped. Please reply quickly.`,
                     
-                    'review': `이 제품 정말 최고예요! 배송도 빠르고, 품질도 기대 이상입니다. 가격 대비 성능이 너무 좋아서 친구들한테도 추천했어요. 다만 설명서가 좀 부실한 것 같아요. 그래도 전반적으로 매우 만족합니다. 다음에도 이 브랜드 제품을 구매할 생각입니다.`
+                    'review': `This product is really great! The delivery was fast and the quality exceeded my expectations. The price-performance ratio is so good that I recommended it to my friends too. However, the manual seems a bit lacking. Overall, I am very satisfied. I will buy this brand's products again next time.`
                 };
                 
                 document.getElementById('textInput').value = examples[type] || examples['article'];
                 updateCharCount();
             }
 
-            // 초기화
             window.onload = function() {
                 updateCharCount();
             };

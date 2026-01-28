@@ -90,17 +90,6 @@
                 color: white;
             }
             
-            .code-suggestion {
-                background: #282c34;
-                color: #abb2bf;
-                padding: 1rem;
-                border-radius: 6px;
-                margin-top: 0.5rem;
-                font-family: 'Courier New', monospace;
-                font-size: 0.85rem;
-                overflow-x: auto;
-            }
-            
             .language-selector {
                 display: flex;
                 gap: 0.5rem;
@@ -147,6 +136,51 @@
                 font-size: 1.2rem;
                 opacity: 0.9;
             }
+
+            .usage-badge {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                color: white;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+            }
+            
+            .info-box {
+                background: #d1f2eb;
+                border-left: 4px solid #28a745;
+                padding: 1rem;
+                margin: 1rem 0;
+                border-radius: 6px;
+            }
+            
+            .streaming-indicator {
+                display: none;
+                align-items: center;
+                gap: 0.5rem;
+                color: #667eea;
+                font-weight: 500;
+                margin-top: 1rem;
+            }
+            
+            .streaming-indicator.show {
+                display: flex;
+            }
+            
+            .streaming-dot {
+                width: 8px;
+                height: 8px;
+                background: #667eea;
+                border-radius: 50%;
+                animation: pulse 1.5s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.3; }
+            }
         </style>
     </th:block>
 </head>
@@ -155,8 +189,13 @@
         <div class="tool-container">
             <div class="page-header">
                 <h2>👨‍💻 AI 코드 리뷰어</h2>
-                <p class="description">Claude AI가 코드를 분석하고 개선 제안을 제공합니다.</p>
-                <div class="usage-badge">🤖 무료 AI 리뷰 - 사용량 무제한</div>
+                <p class="description">무료 AI가 코드를 분석하고 개선 제안을 제공합니다.</p>
+                <div class="usage-badge">🤖 완전 무료 - 정적 분석 기반</div>
+            </div>
+
+            <div class="info-box">
+                <strong>✅ 완전 무료:</strong> 브라우저에서 직접 실행되는 정적 분석을 사용합니다.<br>
+                <strong>🔍 분석 항목:</strong> 코드 품질, 들여쓰기, 주석, 에러 처리, 변수명, 중첩 깊이 등
             </div>
 
             <div class="tool-section card">
@@ -184,7 +223,7 @@
                     <button class="btn btn-secondary" onclick="clearCode()">🗑️ 초기화</button>
                 </div>
 
-                <div class="streaming-indicator" id="streamingIndicator" style="display: none;">
+                <div class="streaming-indicator" id="streamingIndicator">
                     <div class="streaming-dot"></div>
                     <span>AI가 코드를 분석 중입니다...</span>
                 </div>
@@ -218,6 +257,7 @@
 
     <th:block layout:fragment="extra-js">
         <script th:src="@{/js/common-utils.js}"></script>
+        <script th:src="@{/js/ai-utils.js}"></script>
         
         <script>
             let currentLanguage = 'java';
@@ -252,46 +292,15 @@
                     reviewSection.classList.remove('show');
                     reviewContent.innerHTML = '';
                     
-                    const prompt = `당신은 전문 코드 리뷰어입니다. 다음 ${getLanguageName(currentLanguage)} 코드를 분석하고 상세한 리뷰를 제공해주세요.
+                    // 정적 분석 수행 (브라우저에서 직접 실행)
+                    const result = window.aiUtils.analyzeCode(code, currentLanguage);
 
-코드:
-\`\`\`${currentLanguage}
-${code}
-\`\`\`
-
-다음 형식으로 리뷰해주세요:
-
-1. **코드 품질 점수** (0-100점): [점수]점
-   - 간단한 평가
-
-2. **발견된 문제점**
-   - 🔴 심각: [심각한 버그나 보안 이슈]
-   - 🟡 보통: [개선이 필요한 부분]
-   - 🟢 경미: [사소한 개선사항]
-
-3. **개선 제안**
-   - 구체적인 개선 방법
-   - 개선된 코드 예시
-
-4. **긍정적인 부분**
-   - 잘 작성된 부분
-
-5. **전체 평가**
-   - 종합 의견
-
-명확하고 구체적으로 작성해주세요.`;
-                    
-                    const data = await ApiClient.postJson('/ai-code-reviewer/api/review', {
-                        code: code,
-                        language: currentLanguage
-                    });
-
-                    if (data.success) {
-                        const result = data.result;
-                        // 점수 추출 및 결과 표시
-                        reviewContent.innerHTML = formatReviewResult(result);
+                    if (result.success) {
+                        reviewContent.innerHTML = formatReviewResult(result.result);
                         reviewSection.classList.add('show');
                         UiUtils.showSuccess('코드 리뷰가 완료되었습니다!');
+                    } else {
+                        UiUtils.showError(result.message);
                     }
                 } catch (error) {
                     console.error('AI 리뷰 오류:', error);
@@ -310,10 +319,6 @@ ${code}
                     .replace(/\n\n/g, '</p><p>')
                     .replace(/\n/g, '<br>');
                 
-                // 코드 블록 처리
-                html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, 
-                    '<div class="code-suggestion">$2</div>');
-                
                 // 이모지 기반 심각도 표시
                 html = html.replace(/🔴 (.*?)(?=<br>|$)/g, 
                     '<div class="review-item severity-high"><span class="severity-badge">심각</span>$1</div>');
@@ -323,20 +328,6 @@ ${code}
                     '<div class="review-item severity-low"><span class="severity-badge">경미</span>$1</div>');
                 
                 return '<p>' + html + '</p>';
-            }
-
-            function getLanguageName(lang) {
-                const names = {
-                    'java': 'Java',
-                    'python': 'Python',
-                    'javascript': 'JavaScript',
-                    'typescript': 'TypeScript',
-                    'cpp': 'C++',
-                    'csharp': 'C#',
-                    'go': 'Go',
-                    'rust': 'Rust'
-                };
-                return names[lang] || lang;
             }
 
             function clearCode() {
