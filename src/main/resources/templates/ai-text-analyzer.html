@@ -264,39 +264,18 @@
                     outputDiv.textContent = '';
                     
                     // Claude API 호출
-                    const prompt = buildPrompt(currentAnalysisType, text);
-                    
-                    const response = await fetch("https://api.anthropic.com/v1/messages", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            model: "claude-sonnet-4-20250514",
-                            max_tokens: 2000,
-                            messages: [
-                                {
-                                    role: "user",
-                                    content: prompt
-                                }
-                            ]
-                        })
+                    const data = await ApiClient.postJson('/ai-text-analyzer/api/analyze', {
+                        text: text,
+                        analysisType: currentAnalysisType
                     });
-                    
-                    const data = await response.json();
-                    
-                    if (!data.content || !data.content[0]) {
-                        throw new Error('AI 응답을 받을 수 없습니다.');
+
+                    if (data.success) {
+                        outputDiv.textContent = data.result;
+                        outputDiv.classList.add('show');
+                        UiUtils.showSuccess('분석이 완료되었습니다!');
+                    } else {
+                        UiUtils.showError(data.message || '분석 중 오류가 발생했습니다.');
                     }
-                    
-                    const result = data.content[0].text;
-                    
-                    // 결과 표시
-                    outputDiv.textContent = result;
-                    outputDiv.classList.add('show');
-                    
-                    UiUtils.showSuccess('분석이 완료되었습니다!');
-                    
                 } catch (error) {
                     console.error('AI 분석 오류:', error);
                     UiUtils.showError('분석 중 오류가 발생했습니다: ' + error.message);
