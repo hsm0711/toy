@@ -153,7 +153,7 @@ public class HuggingFaceApiService {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         
         try {
-            log.info("API 호출: {} with body: {}, api key: {}", url, requestBody, apiKey);
+            log.info("API 호출: {} with body: {}", url, requestBody);
             
             ResponseEntity<Object> response = restTemplate.postForEntity(url, request, Object.class);
             
