@@ -27,7 +27,7 @@ public class HuggingFaceApiService {
     private String apiKey;
     
     // ✅ 수정된 엔드포인트
-    private static final String HF_API_URL = "https://api-inference.huggingface.co/models/";
+    private static final String HF_API_URL = "https://router.huggingface.co/";
     
     // 모델 목록
     private static final String MODEL_SUMMARIZATION = "facebook/bart-large-cnn";
@@ -143,7 +143,7 @@ public class HuggingFaceApiService {
      * Hugging Face API 호출 (공통)
      */
     private Object callHuggingFaceApi(String modelName, Map<String, Object> requestBody) {
-        String url = HF_API_URL + modelName;
+        String url = HF_API_URL + "models/" + modelName;
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
