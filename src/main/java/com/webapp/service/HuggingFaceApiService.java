@@ -27,7 +27,7 @@ public class HuggingFaceApiService {
     private String apiKey;
     
     // ✅ 수정된 엔드포인트
-    private static final String HF_API_URL = "https://router.huggingface.co/models/";
+    private static final String HF_API_URL = "https://api-inference.huggingface.co/models/";
     
     // 모델 목록
     private static final String MODEL_SUMMARIZATION = "facebook/bart-large-cnn";
