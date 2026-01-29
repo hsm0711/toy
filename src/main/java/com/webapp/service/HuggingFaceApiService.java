@@ -148,11 +148,12 @@ public class HuggingFaceApiService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.set("Authorization", "Bearer " + apiKey);
+        headers.set("X-Wait-For-Model", "true");
         
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         
         try {
-            log.info("API 호출: {} with body: {}", url, requestBody);
+            log.info("API 호출: {} with body: {}, api key: {}", url, requestBody, apiKey);
             
             ResponseEntity<Object> response = restTemplate.postForEntity(url, request, Object.class);
             
