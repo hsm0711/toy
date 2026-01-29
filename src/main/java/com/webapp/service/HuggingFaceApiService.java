@@ -6,13 +6,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.*;
 
 /**
  * Hugging Face Inference API 서비스
- * - 무료 티어 사용 (월 사용량 제한 있음)
- * - 서버에서 API 호출하여 프론트엔드에 전달
+ * - 엔드포인트 수정: router.huggingface.co
+ * - 응답 파싱 개선
+ * - 에러 처리 강화
  */
 @Slf4j
 @Service
@@ -24,7 +26,8 @@ public class HuggingFaceApiService {
     @Value("${huggingface.api.key:}")
     private String apiKey;
     
-    private static final String HF_API_URL = "https://api-inference.huggingface.co/models/";
+    // ✅ 수정된 엔드포인트
+    private static final String HF_API_URL = "https://router.huggingface.co/models/";
     
     // 모델 목록
     private static final String MODEL_SUMMARIZATION = "facebook/bart-large-cnn";
@@ -35,7 +38,7 @@ public class HuggingFaceApiService {
     /**
      * 텍스트 요약
      */
-    public Map<String, Object> summarize(String text, int maxLength) {
+    public Map<String, Object> summarize(String text, int maxLength, int minLength) {
         if (!isApiKeyConfigured()) {
             return createErrorResponse("Hugging Face API 키가 설정되지 않았습니다. application.properties에 huggingface.api.key를 추가하세요.");
         }
@@ -45,33 +48,21 @@ public class HuggingFaceApiService {
             requestBody.put("inputs", text);
             requestBody.put("parameters", Map.of(
                 "max_length", maxLength,
-                "min_length", 30,
+                "min_length", minLength,
                 "do_sample", false
             ));
             
             Object response = callHuggingFaceApi(MODEL_SUMMARIZATION, requestBody);
             
-            // 배열 응답 처리
-            if (response instanceof List) {
-                List<Map<String, Object>> results = (List<Map<String, Object>>) response;
-                if (!results.isEmpty() && results.get(0).containsKey("summary_text")) {
-                    String summary = (String) results.get(0).get("summary_text");
-                    return createSuccessResponse(summary);
-                }
+            log.info("요약 응답: {}", response);
+            
+            // 응답 파싱 개선
+            String summary = extractSummaryFromResponse(response);
+            if (summary != null) {
+                return createSuccessResponse(summary);
             }
             
-            // Map 응답 처리
-            if (response instanceof Map) {
-                Map<String, Object> map = (Map<String, Object>) response;
-                if (map.containsKey("error")) {
-                    return createErrorResponse("요약 실패: " + map.get("error"));
-                }
-                if (map.containsKey("summary_text")) {
-                    return createSuccessResponse((String) map.get("summary_text"));
-                }
-            }
-            
-            return createErrorResponse("요약 결과를 파싱할 수 없습니다.");
+            return createErrorResponse("요약 결과를 추출할 수 없습니다. 응답: " + response);
             
         } catch (Exception e) {
             log.error("요약 중 오류 발생", e);
@@ -93,27 +84,24 @@ public class HuggingFaceApiService {
             
             Object response = callHuggingFaceApi(MODEL_SENTIMENT, requestBody);
             
-            // 배열 응답 처리
-            if (response instanceof List) {
-                List<List<Map<String, Object>>> results = (List<List<Map<String, Object>>>) response;
-                if (!results.isEmpty() && !results.get(0).isEmpty()) {
-                    Map<String, Object> sentiment = results.get(0).get(0);
-                    
-                    String label = (String) sentiment.get("label");
-                    Double score = (Double) sentiment.get("score");
-                    
-                    // 한글 변환
-                    String labelKo = convertSentimentLabel(label);
-                    double confidence = score * 100;
-                    
-                    String analysis = String.format("**감정**: %s (확신도: %.1f%%)\n\n", labelKo, confidence);
-                    analysis += getSentimentDescription(label);
-                    
-                    return createSuccessResponse(analysis);
-                }
+            log.info("감정 분석 응답: {}", response);
+            
+            // 응답 파싱 개선
+            Map<String, Object> sentiment = extractSentimentFromResponse(response);
+            if (sentiment != null) {
+                String label = (String) sentiment.get("label");
+                Double score = (Double) sentiment.get("score");
+                
+                String labelKo = convertSentimentLabel(label);
+                double confidence = score * 100;
+                
+                String analysis = String.format("**감정**: %s (확신도: %.1f%%)\n\n", labelKo, confidence);
+                analysis += getSentimentDescription(label);
+                
+                return createSuccessResponse(analysis);
             }
             
-            return createErrorResponse("감정 분석 결과를 파싱할 수 없습니다.");
+            return createErrorResponse("감정 분석 결과를 추출할 수 없습니다. 응답: " + response);
             
         } catch (Exception e) {
             log.error("감정 분석 중 오류 발생", e);
@@ -135,50 +123,19 @@ public class HuggingFaceApiService {
             
             Object response = callHuggingFaceApi(MODEL_TRANSLATION_EN_KO, requestBody);
             
-            // 배열 응답 처리
-            if (response instanceof List) {
-                List<Map<String, Object>> results = (List<Map<String, Object>>) response;
-                if (!results.isEmpty() && results.get(0).containsKey("translation_text")) {
-                    String translation = (String) results.get(0).get("translation_text");
-                    return createSuccessResponse(translation);
-                }
+            log.info("번역 응답: {}", response);
+            
+            // 응답 파싱 개선
+            String translation = extractTranslationFromResponse(response);
+            if (translation != null) {
+                return createSuccessResponse(translation);
             }
             
-            return createErrorResponse("번역 결과를 파싱할 수 없습니다.");
+            return createErrorResponse("번역 결과를 추출할 수 없습니다. 응답: " + response);
             
         } catch (Exception e) {
             log.error("번역 중 오류 발생", e);
             return createErrorResponse("번역 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * Zero-shot 분류 (키워드 추출, 문장 개선 등에 활용)
-     */
-    public Map<String, Object> zeroShotClassification(String text, List<String> candidateLabels) {
-        if (!isApiKeyConfigured()) {
-            return createErrorResponse("Hugging Face API 키가 설정되지 않았습니다.");
-        }
-        
-        try {
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("inputs", text);
-            requestBody.put("parameters", Map.of("candidate_labels", candidateLabels));
-            
-            Object response = callHuggingFaceApi(MODEL_ZERO_SHOT, requestBody);
-            
-            if (response instanceof Map) {
-                Map<String, Object> map = (Map<String, Object>) response;
-                if (map.containsKey("error")) {
-                    return createErrorResponse("분류 실패: " + map.get("error"));
-                }
-            }
-            
-            return Map.of("success", true, "data", response);
-            
-        } catch (Exception e) {
-            log.error("Zero-shot 분류 중 오류 발생", e);
-            return createErrorResponse("분류 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
     
@@ -195,7 +152,12 @@ public class HuggingFaceApiService {
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
         
         try {
+            log.info("API 호출: {} with body: {}", url, requestBody);
+            
             ResponseEntity<Object> response = restTemplate.postForEntity(url, request, Object.class);
+            
+            log.info("API 응답 상태: {}", response.getStatusCode());
+            log.info("API 응답 본문: {}", response.getBody());
             
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return response.getBody();
@@ -203,16 +165,127 @@ public class HuggingFaceApiService {
             
             return Map.of("error", "API 호출 실패: " + response.getStatusCode());
             
+        } catch (HttpClientErrorException e) {
+            log.error("HTTP 에러: {} - {}", e.getStatusCode(), e.getResponseBodyAsString());
+            return Map.of("error", "API 호출 실패: " + e.getMessage());
         } catch (Exception e) {
             log.error("Hugging Face API 호출 실패: {}", url, e);
             
-            // 모델 로딩 중 오류 처리
             if (e.getMessage() != null && e.getMessage().contains("loading")) {
                 return Map.of("error", "모델이 로딩 중입니다. 약 20초 후 다시 시도해주세요.");
             }
             
             return Map.of("error", "API 호출 중 오류: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 요약 응답에서 텍스트 추출
+     */
+    private String extractSummaryFromResponse(Object response) {
+        try {
+            // Case 1: List<Map>
+            if (response instanceof List) {
+                List<?> list = (List<?>) response;
+                if (!list.isEmpty() && list.get(0) instanceof Map) {
+                    Map<String, Object> first = (Map<String, Object>) list.get(0);
+                    if (first.containsKey("summary_text")) {
+                        return (String) first.get("summary_text");
+                    }
+                    if (first.containsKey("generated_text")) {
+                        return (String) first.get("generated_text");
+                    }
+                }
+            }
+            
+            // Case 2: Map
+            if (response instanceof Map) {
+                Map<String, Object> map = (Map<String, Object>) response;
+                if (map.containsKey("summary_text")) {
+                    return (String) map.get("summary_text");
+                }
+                if (map.containsKey("generated_text")) {
+                    return (String) map.get("generated_text");
+                }
+            }
+        } catch (Exception e) {
+            log.error("요약 응답 파싱 실패", e);
+        }
+        return null;
+    }
+    
+    /**
+     * 감정 분석 응답에서 정보 추출
+     */
+    private Map<String, Object> extractSentimentFromResponse(Object response) {
+        try {
+            // Case 1: List<List<Map>>
+            if (response instanceof List) {
+                List<?> list = (List<?>) response;
+                if (!list.isEmpty()) {
+                    Object first = list.get(0);
+                    
+                    // Nested list
+                    if (first instanceof List) {
+                        List<?> nested = (List<?>) first;
+                        if (!nested.isEmpty() && nested.get(0) instanceof Map) {
+                            return (Map<String, Object>) nested.get(0);
+                        }
+                    }
+                    
+                    // Direct map
+                    if (first instanceof Map) {
+                        return (Map<String, Object>) first;
+                    }
+                }
+            }
+            
+            // Case 2: Map directly
+            if (response instanceof Map) {
+                Map<String, Object> map = (Map<String, Object>) response;
+                if (map.containsKey("label") && map.containsKey("score")) {
+                    return map;
+                }
+            }
+        } catch (Exception e) {
+            log.error("감정 분석 응답 파싱 실패", e);
+        }
+        return null;
+    }
+    
+    /**
+     * 번역 응답에서 텍스트 추출
+     */
+    private String extractTranslationFromResponse(Object response) {
+        try {
+            // Case 1: List<Map>
+            if (response instanceof List) {
+                List<?> list = (List<?>) response;
+                if (!list.isEmpty() && list.get(0) instanceof Map) {
+                    Map<String, Object> first = (Map<String, Object>) list.get(0);
+                    if (first.containsKey("translation_text")) {
+                        return (String) first.get("translation_text");
+                    }
+                    if (first.containsKey("generated_text")) {
+                        return (String) first.get("generated_text");
+                    }
+                }
+            }
+            
+            // Case 2: Map
+            if (response instanceof Map) {
+                Map<String, Object> map = (Map<String, Object>) response;
+                if (map.containsKey("translation_text")) {
+                    return (String) map.get("translation_text");
+                }
+                if (map.containsKey("generated_text")) {
+                    return (String) map.get("generated_text");
+                }
+            }
+        } catch (Exception e) {
+            log.error("번역 응답 파싱 실패", e);
+        }
+        return null;
     }
     
     /**
@@ -247,58 +320,10 @@ public class HuggingFaceApiService {
     }
 
     /**
-     * 텍스트 요약 (오버로드 - minLength 추가)
-     */
-    public Map<String, Object> summarize(String text, int maxLength, int minLength) {
-        if (!isApiKeyConfigured()) {
-            return createErrorResponse("Hugging Face API 키가 설정되지 않았습니다. application.properties에 huggingface.api.key를 추가하세요.");
-        }
-        
-        try {
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("inputs", text);
-            requestBody.put("parameters", Map.of(
-                "max_length", maxLength,
-                "min_length", minLength,
-                "do_sample", false
-            ));
-            
-            Object response = callHuggingFaceApi(MODEL_SUMMARIZATION, requestBody);
-            
-            // 배열 응답 처리
-            if (response instanceof List) {
-                List<Map<String, Object>> results = (List<Map<String, Object>>) response;
-                if (!results.isEmpty() && results.get(0).containsKey("summary_text")) {
-                    String summary = (String) results.get(0).get("summary_text");
-                    return createSuccessResponse(summary);
-                }
-            }
-            
-            // Map 응답 처리
-            if (response instanceof Map) {
-                Map<String, Object> map = (Map<String, Object>) response;
-                if (map.containsKey("error")) {
-                    return createErrorResponse("요약 실패: " + map.get("error"));
-                }
-                if (map.containsKey("summary_text")) {
-                    return createSuccessResponse((String) map.get("summary_text"));
-                }
-            }
-            
-            return createErrorResponse("요약 결과를 파싱할 수 없습니다.");
-            
-        } catch (Exception e) {
-            log.error("요약 중 오류 발생", e);
-            return createErrorResponse("요약 중 오류가 발생했습니다: " + e.getMessage());
-        }
-    }
-
-    /**
-     * 키워드 추출 (통계 기반 - 간단 버전)
+     * 키워드 추출 (통계 기반)
      */
     public Map<String, Object> extractKeywords(String text) {
         try {
-            // 불용어 제거
             Set<String> stopwords = new HashSet<>(Arrays.asList(
                 "이", "그", "저", "것", "수", "등", "들", "및", "때", "등등",
                 "하다", "있다", "되다", "않다", "없다", "아니다",
@@ -308,7 +333,6 @@ public class HuggingFaceApiService {
                 "can", "could", "should", "may", "might", "must"
             ));
 
-            // 텍스트 정규화
             String[] words = text.toLowerCase()
                 .replaceAll("[^\\w\\s가-힣]", " ")
                 .split("\\s+");
@@ -317,13 +341,11 @@ public class HuggingFaceApiService {
                 .filter(word -> word.length() > 2 && !stopwords.contains(word))
                 .toList();
 
-            // 빈도 계산
             Map<String, Integer> frequency = new HashMap<>();
             for (String word : filteredWords) {
                 frequency.put(word, frequency.getOrDefault(word, 0) + 1);
             }
 
-            // 상위 키워드 추출
             List<Map.Entry<String, Integer>> topKeywords = frequency.entrySet().stream()
                 .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
                 .limit(10)
@@ -345,14 +367,13 @@ public class HuggingFaceApiService {
     }
 
     /**
-     * 코드 리뷰 (정적 분석 기반)
+     * 코드 리뷰 (정적 분석)
      */
     public Map<String, Object> reviewCode(String code, String language) {
         try {
             List<Map<String, String>> issues = new ArrayList<>();
             int score = 100;
 
-            // 1. 코드 길이 체크
             int lines = code.split("\n").length;
             if (lines > 100) {
                 issues.add(Map.of(
@@ -362,7 +383,6 @@ public class HuggingFaceApiService {
                 score -= 10;
             }
 
-            // 2. 들여쓰기 체크
             long indentIssues = Arrays.stream(code.split("\n"))
                 .filter(line -> line.matches("^\\s{1,3}\\S.*") || line.matches("^\\t\\S.*"))
                 .count();
@@ -375,7 +395,6 @@ public class HuggingFaceApiService {
                 score -= 5;
             }
 
-            // 3. 주석 체크
             long commentLines = Arrays.stream(code.split("\n"))
                 .filter(line -> {
                     String trimmed = line.trim();
@@ -391,7 +410,6 @@ public class HuggingFaceApiService {
                 score -= 5;
             }
 
-            // 4. 하드코딩 체크
             long hardcodedStrings = code.split("\"[^\"]{20,}\"").length - 1;
             if (hardcodedStrings > 3) {
                 issues.add(Map.of(
@@ -401,7 +419,6 @@ public class HuggingFaceApiService {
                 score -= 10;
             }
 
-            // 5. 에러 처리 체크
             boolean hasErrorHandling = code.contains("try") || code.contains("catch") || 
                                     code.contains("except") || code.contains("error");
             
@@ -413,7 +430,6 @@ public class HuggingFaceApiService {
                 score -= 15;
             }
 
-            // 6. 변수명 체크
             long shortVarNames = code.split("\\b[a-z]\\b").length - 1;
             if (shortVarNames > 5) {
                 issues.add(Map.of(
@@ -423,7 +439,6 @@ public class HuggingFaceApiService {
                 score -= 5;
             }
 
-            // 7. 중첩 깊이 체크
             int maxNesting = calculateMaxNesting(code);
             if (maxNesting > 4) {
                 issues.add(Map.of(
@@ -433,7 +448,6 @@ public class HuggingFaceApiService {
                 score -= 15;
             }
 
-            // 결과 포맷팅
             StringBuilder result = new StringBuilder();
             result.append(String.format("**코드 품질 점수**: %d/100\n\n", Math.max(0, score)));
             
@@ -503,9 +517,6 @@ public class HuggingFaceApiService {
         }
     }
 
-    /**
-     * 중첩 깊이 계산
-     */
     private int calculateMaxNesting(String code) {
         int maxDepth = 0;
         int currentDepth = 0;
@@ -522,9 +533,6 @@ public class HuggingFaceApiService {
         return maxDepth;
     }
 
-    /**
-     * 데이터 분석 (통계 기반)
-     */
     public Map<String, Object> analyzeData(List<Map<String, Object>> data) {
         try {
             if (data == null || data.isEmpty()) {
@@ -542,7 +550,6 @@ public class HuggingFaceApiService {
 
             result.append("**주요 발견사항:**\n\n");
 
-            // 각 컬럼 분석
             int index = 1;
             for (String col : columns) {
                 List<Object> values = data.stream()
@@ -555,7 +562,6 @@ public class HuggingFaceApiService {
                 result.append(String.format("%d. **%s**\n", index++, col));
                 result.append(String.format("   - 고유값: %d개\n", uniqueValues.size()));
                 
-                // 숫자형 데이터 분석
                 List<Double> numericValues = values.stream()
                     .filter(v -> {
                         try {
@@ -577,7 +583,6 @@ public class HuggingFaceApiService {
                     result.append(String.format("   - 평균: %.2f\n", avg));
                     result.append(String.format("   - 최소: %.2f, 최대: %.2f\n", min, max));
                 } else {
-                    // 문자형 데이터 - 최빈값
                     Map<Object, Long> frequency = values.stream()
                         .collect(java.util.stream.Collectors.groupingBy(
                             v -> v, java.util.stream.Collectors.counting()
@@ -615,9 +620,6 @@ public class HuggingFaceApiService {
         }
     }
     
-    /**
-     * 성공 응답 생성
-     */
     private Map<String, Object> createSuccessResponse(String result) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -625,9 +627,6 @@ public class HuggingFaceApiService {
         return response;
     }
     
-    /**
-     * 에러 응답 생성
-     */
     private Map<String, Object> createErrorResponse(String message) {
         Map<String, Object> response = new HashMap<>();
         response.put("success", false);
