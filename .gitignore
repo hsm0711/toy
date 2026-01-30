@@ -56,3 +56,6 @@ build/
 *.zip
 *.tar.gz
 *.rar
+
+# Gemini specific
+**/GEMINI.md
