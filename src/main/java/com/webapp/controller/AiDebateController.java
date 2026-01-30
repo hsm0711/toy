@@ -1,5 +1,4 @@
-package com.webapp.controller;
-
+import org.springframework.beans.factory.annotation.Value;
 import com.webapp.service.MenuService;
 import com.webapp.service.OpenRouterApiService;
 import com.webapp.util.ResponseUtils;
@@ -27,9 +26,11 @@ public class AiDebateController {
     private final MenuService menuService;
     private final OpenRouterApiService openRouterApiService; // AI 모델과 통신하기 위한 서비스
 
+    @Value("${ai.debate.max-turns}")
+    private int maxDebateTurns;
+
     private static final String MODEL_AI1 = "meta-llama/llama-3.1-8b-instruct"; // AI 1 모델
     private static final String MODEL_AI2 = "qwen/qwen-2.5-7b-instruct";        // AI 2 모델
-    private static final int MAX_DEBATE_TURNS = 6; // 최대 토론 턴 수
 
     /**
      * AI 토론 배틀 페이지 렌더링
@@ -50,12 +51,27 @@ public class AiDebateController {
     public Map<String, Object> startDebate(@RequestBody Map<String, String> request) {
         try {
             String topic = request.get("topic");
+            String turnsStr = request.get("turns");
 
             if (topic == null || topic.trim().isEmpty()) {
                 return ResponseUtils.failure("토론 주제를 입력해주세요.");
             }
 
-            log.info("AI 토론 시작 요청 - 주제: {}", topic);
+            int requestedTurns = maxDebateTurns; // 기본값은 서버 설정
+            if (turnsStr != null && !turnsStr.trim().isEmpty()) {
+                try {
+                    requestedTurns = Integer.parseInt(turnsStr);
+                    if (requestedTurns <= 0) {
+                        return ResponseUtils.failure("토론 턴 수는 1 이상이어야 합니다.");
+                    }
+                } catch (NumberFormatException e) {
+                    return ResponseUtils.failure("유효하지 않은 토론 턴 수입니다.");
+                }
+            }
+
+            final int actualDebateTurns = Math.min(requestedTurns, maxDebateTurns);
+
+            log.info("AI 토론 시작 요청 - 주제: {}, 요청 턴 수: {}, 실제 토론 턴 수: {}", topic, requestedTurns, actualDebateTurns);
 
             List<Map<String, String>> debateLogList = new ArrayList<>();
             StringBuilder conversationHistory = new StringBuilder();
@@ -78,7 +94,7 @@ public class AiDebateController {
             debateLogList.add(Map.of("speaker", "AI 1", "message", ai1Response));
             conversationHistory.append("AI 1: ").append(ai1Response).append("\n");
 
-            for (int i = 1; i < MAX_DEBATE_TURNS; i++) {
+            for (int i = 1; i < actualDebateTurns; i++) {
                 // AI 2 턴
                 String promptForAi2 = initialPromptAi2 + "\n\n현재까지의 토론:\n" + conversationHistory.toString();
                 String ai2Response = callAiModel(MODEL_AI2, promptForAi2, 300, 0.7);
@@ -86,7 +102,7 @@ public class AiDebateController {
                 debateLogList.add(Map.of("speaker", "AI 2", "message", ai2Response));
                 conversationHistory.append("AI 2: ").append(ai2Response).append("\n");
 
-                if (i < MAX_DEBATE_TURNS - 1) { // 마지막 턴은 AI 2가 마무리
+                if (i < actualDebateTurns - 1) { // 마지막 턴은 AI 2가 마무리
                     // AI 1 턴
                     String promptForAi1 = initialPromptAi1 + "\n\n현재까지의 토론:\n" + conversationHistory.toString();
                     ai1Response = callAiModel(MODEL_AI1, promptForAi1, 300, 0.7);

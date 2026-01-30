@@ -92,6 +92,15 @@
             <div class="debate-container">
                 <div class="debate-input-section">
                     <textarea id="debateTopic" class="form-control" placeholder="토론 주제를 입력하세요 (예: 피자에 파인애플은 유해한가?)..."></textarea>
+                    <div style="width: 120px;">
+                        <label for="debateTurns" class="form-label visually-hidden">토론 턴 수</label>
+                        <select id="debateTurns" class="form-select">
+                            <option value="3">3 턴</option>
+                            <option value="5" selected>5 턴</option>
+                            <option value="7">7 턴</option>
+                            <option value="10">10 턴</option>
+                        </select>
+                    </div>
                     <button class="btn btn-primary" onclick="startDebate()" id="startDebateBtn">
                         🔥 토론 시작
                     </button>
@@ -118,6 +127,8 @@
     <script>
         async function startDebate() {
             const topic = document.getElementById('debateTopic').value.trim();
+            const turns = document.getElementById('debateTurns').value; // Get the turns value
+
             if (!topic) {
                 UiUtils.showError('토론 주제를 입력해주세요.');
                 return;
@@ -134,11 +145,10 @@
             streamingIndicator.classList.add('show');
 
             try {
-                // For now, this will call the placeholder in AiDebateController.java
                 const response = await fetch('/ai-debate/api/start-debate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic: topic }),
+                    body: JSON.stringify({ topic: topic, turns: turns }), // Include turns in the request body
                 });
 
                 const data = await response.json();

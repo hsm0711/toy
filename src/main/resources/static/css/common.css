@@ -417,3 +417,139 @@ footer p {
         max-height: 30px;
     }
 }
+
+/* ========================================
+   드롭다운 메뉴 스타일
+   ======================================== */
+.dropdown {
+    position: relative;
+    display: flex;
+    align-items: stretch; /* 부모 요소의 높이에 맞춤 */
+}
+
+.dropdown-toggle {
+    display: flex;
+    align-items: center;
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    padding: 0 1.5rem;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    position: relative;
+}
+
+.dropdown-toggle .arrow-down {
+    display: inline-block;
+    margin-left: 0.4rem; /* 간격 증가 */
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent; /* 크기 약간 키움 */
+    border-right: 5px solid transparent;
+    border-top: 6px solid white; /* 색상 통일 */
+    transition: transform 0.2s ease-in-out;
+}
+
+.dropdown.show .dropdown-toggle .arrow-down {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    /*left: 50%;*/ /* 중앙 정렬 대신 왼쪽 정렬로 변경 */
+    left: 0;
+    /*transform: translateX(-50%);*/ /* 중앙 정렬 변형 제거 */
+    background-color: white;
+    min-width: 180px; /* 너비 약간 증가 */
+    box-shadow: 0 6px 16px rgba(0,0,0,0.15); /* 그림자 부드럽게 */
+    z-index: 1000;
+    list-style: none;
+    padding: 0.5rem 0;
+    border-radius: 6px; /* 모서리 둥글게 */
+    margin-top: 0.25rem; /* navbar와의 간격 조절 */
+    overflow: hidden; /* 라운드 처리된 모서리 내부 요소에 영향 없도록 */
+}
+
+.dropdown-menu a {
+    color: #333;
+    padding: 0.75rem 1.25rem; /* 패딩 조절 */
+    text-decoration: none;
+    display: block;
+    text-align: left;
+    font-size: 0.9rem; /* 폰트 크기 약간 줄임 */
+    transition: background-color 0.2s ease;
+}
+
+.dropdown-menu a:hover {
+    background-color: #f0f0f0; /* 호버 배경색 변경 */
+}
+
+.dropdown.show .dropdown-menu {
+    display: block;
+}
+
+/* 액티브 메뉴 아이템 스타일 조정 */
+.nav-menu a.active {
+    background: rgba(255, 255, 255, 0.2);
+    font-weight: 600;
+}
+
+.nav-menu a.active::after {
+    height: 3px;
+    background: white; /* 액티브 라인 색상 통일 */
+    box-shadow: none; /* 그림자 제거 */
+}
+
+/* 모바일 드롭다운 스타일 조정 */
+@media (max-width: 768px) {
+    .dropdown {
+        width: 100%; /* 모바일에서 전체 너비 사용 */
+    }
+    
+    .dropdown-toggle {
+        padding: 1rem 2rem; /* 모바일 메뉴 패딩과 일치 */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        border-left: 4px solid transparent;
+        justify-content: space-between; /* 화살표를 오른쪽으로 */
+        width: 100%;
+    }
+    
+    .dropdown-toggle .arrow-down {
+        border-top: 6px solid white;
+    }
+
+    .dropdown-menu {
+        position: static; /* 모바일 메뉴 흐름에 맞춤 */
+        transform: none;
+        box-shadow: none;
+        background-color: rgba(0,0,0,0.1); /* 모바일 메뉴 배경과 어울리게 */
+        border-radius: 0;
+        padding: 0; /* 내부 패딩은 a 태그에서 */
+        margin-top: 0;
+        min-width: unset;
+    }
+    
+    .dropdown-menu a {
+        padding: 0.8rem 2.5rem; /* 들여쓰기 효과 */
+        font-size: 0.9rem;
+        border-left: 4px solid transparent;
+        color: rgba(255,255,255,0.8); /* 색상 밝게 */
+    }
+    
+    .dropdown-menu a:hover {
+        background-color: rgba(0,0,0,0.2);
+        border-left-color: white;
+        color: white;
+    }
+
+    .dropdown-menu a.active {
+        background-color: rgba(0,0,0,0.3);
+        border-left-color: white;
+        color: white;
+    }
+}

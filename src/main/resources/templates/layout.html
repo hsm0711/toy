@@ -12,64 +12,6 @@
     <!-- 페이지별 CSS -->
     <th:block layout:fragment="extra-css"></th:block>
     <link rel="icon" type="image/svg+xml" th:href="@{/image/favicon.svg}">
-    <style>
-        .dropdown {
-            position: relative;
-        }
-        .dropdown-toggle .arrow-down {
-            display: inline-block;
-            margin-left: 0.3rem;
-            width: 0;
-            height: 0;
-            border-left: 4px solid transparent;
-            border-right: 4px solid transparent;
-            border-top: 5px solid;
-            transition: transform 0.2s ease-in-out;
-        }
-        .dropdown.show .dropdown-toggle .arrow-down {
-            transform: rotate(180deg);
-        }
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: white;
-            min-width: 160px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            z-index: 1000;
-            list-style: none;
-            padding: 0.5rem 0;
-            border-radius: 8px;
-            margin-top: 0.5rem;
-        }
-        .dropdown-menu a {
-            color: #333;
-            padding: 0.75rem 1.5rem;
-            text-decoration: none;
-            display: block;
-            text-align: left;
-            font-size: 0.95rem;
-        }
-        .dropdown-menu a:hover {
-            background-color: #f1f1f1;
-        }
-        .dropdown.show .dropdown-menu {
-            display: block;
-        }
-        
-        @media (max-width: 768px) {
-            .dropdown-menu {
-                position: static;
-                transform: none;
-                box-shadow: none;
-                background-color: transparent;
-                border-radius: 0;
-                padding-left: 1rem;
-            }
-        }
-    </style>
 </head>
 <body>
     <!-- 모바일 메뉴 오버레이 -->
@@ -103,7 +45,8 @@
                 </th:block>
 
                 <li class="dropdown" th:if="${#lists.size(menus) > 4}">
-                    <a href="#" class="dropdown-toggle" id="moreMenuLink" aria-haspopup="true" aria-expanded="false">
+                    <a href="#" class="dropdown-toggle" id="moreMenuLink" aria-haspopup="true" aria-expanded="false"
+                       th:classappend="${#lists.exists(menus, m -> m.path.length() > 1 && currentPage == m.path.substring(1) && menus.indexOf(m) >= 4)} ? 'active' : ''">
                         더보기 <span class="arrow-down"></span>
                     </a>
                     <ul class="dropdown-menu" id="moreMenuDropdown" aria-labelledby="moreMenuLink">
