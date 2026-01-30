@@ -1,6 +1,7 @@
 package com.webapp.controller;
 
 import com.webapp.model.Menu;
+import com.webapp.service.OpenRouterApiService;
 import com.webapp.service.MenuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
