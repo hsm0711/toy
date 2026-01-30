@@ -50,4 +50,17 @@ public class MenuService {
     public void deleteMenu(Long id) {
         menuRepository.deleteById(id);
     }
+    
+    @Transactional
+    public void updateMenuOrder(List<Long> menuIds) {
+        for (int i = 0; i < menuIds.size(); i++) {
+            Long menuId = menuIds.get(i);
+            int newOrder = i;
+            
+            menuRepository.findById(menuId).ifPresent(menu -> {
+                menu.setDisplayOrder(newOrder);
+                menuRepository.save(menu);
+            });
+        }
+    }
 }

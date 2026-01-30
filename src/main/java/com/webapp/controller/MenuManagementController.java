@@ -159,4 +159,26 @@ public class MenuManagementController {
             return ResponseEntity.status(500).body(response);
         }
     }
+
+    /**
+     * API: 메뉴 순서 업데이트
+     */
+    @PostMapping("/api/update-order")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateMenuOrder(@RequestBody List<Long> menuIds) {
+        log.info("메뉴 순서 업데이트 API 호출: {}", menuIds);
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            menuService.updateMenuOrder(menuIds);
+            response.put("success", true);
+            response.put("message", "메뉴 순서가 업데이트되었습니다.");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("메뉴 순서 업데이트 실패", e);
+            response.put("success", false);
+            response.put("message", "메뉴 순서 업데이트 중 오류가 발생했습니다: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
+        }
+    }
 }

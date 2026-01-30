@@ -4,9 +4,25 @@
       layout:decorate="~{layout}">
 <head>
     <title>메뉴 관리</title>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <th:block layout:fragment="extra-css">
         <link rel="stylesheet" th:href="@{/css/tool-page.css}">
         <style>
+            .drag-handle {
+                cursor: grab;
+                text-align: center;
+                color: #adb5bd;
+                font-size: 1.2rem;
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+            .sortable-ghost {
+                opacity: 0.4;
+                background: #e9ecef;
+            }
+            .sortable-chosen {
+                cursor: grabbing;
+            }
             .action-bar {
                 background: white;
                 padding: 1.5rem;
@@ -370,6 +386,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th style="width: 50px;"></th>
                             <th style="width: 50px;">ID</th>
                             <th>메뉴명</th>
                             <th>경로</th>
@@ -380,7 +397,7 @@
                     </thead>
                     <tbody id="menuTableBody">
                         <tr>
-                            <td colspan="6" class="loading">메뉴를 불러오는 중...</td>
+                            <td colspan="7" class="loading">메뉴를 불러오는 중...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -398,7 +415,7 @@
                     
                     <div class="form-group">
                         <label for="menuName">메뉴명 *</label>
-                        <input type="text" id="menuName" class="form-control" required oninput="debouncedSuggestIcon()">
+                        <input type="text" id="menuName" class="form-control" required>
                     </div>
 
                     <div class="form-group">
@@ -411,9 +428,14 @@
                             아이콘 (선택)
                             <span class="ai-badge">✨ AI 추천</span>
                         </label>
-                        <input type="text" id="menuIcon" class="form-control" placeholder="🔧" readonly>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" id="menuIcon" class="form-control" placeholder="🔧" readonly>
+                            <button type="button" id="getSuggestionBtn" class="btn btn-primary" onclick="suggestIconWithAI()">
+                                아이콘 추천받기
+                            </button>
+                        </div>
                         <div class="helper-text">
-                            <span>메뉴명을 입력하면 AI가 적합한 아이콘을 실시간으로 추천합니다</span>
+                            <span>메뉴명을 입력하고 '아이콘 추천받기' 버튼을 클릭하면 AI가 적합한 아이콘을 추천합니다</span>
                         </div>
                         <div class="icon-suggestions-container">
                             <div id="iconSuggestions" class="icon-suggestions empty">
@@ -457,6 +479,7 @@
             let editingMenuId = null;
             let debounceTimer = null;
             let lastMenuName = '';
+            let sortable = null;
 
             window.onload = function() {
                 loadMenus();
@@ -467,6 +490,7 @@
                     const response = await fetch('/mngt/menu/api/list');
                     menus = await response.json();
                     renderMenuTable();
+                    initSortable();
                 } catch (error) {
                     console.error('메뉴 로드 실패:', error);
                     showToast('메뉴를 불러오는 중 오류가 발생했습니다.', 'error');
@@ -479,7 +503,7 @@
                 if (menus.length === 0) {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="6" class="empty-state">
+                            <td colspan="7" class="empty-state">
                                 등록된 메뉴가 없습니다.<br>
                                 <button class="btn btn-primary btn-sm" onclick="showCreateModal()" style="margin-top: 10px;">
                                     첫 메뉴 추가하기
@@ -491,7 +515,8 @@
                 }
 
                 tbody.innerHTML = menus.map(menu => `
-                    <tr>
+                    <tr data-menu-id="${menu.id}">
+                        <td class="drag-handle">☰</td>
                         <td>${menu.id}</td>
                         <td>${menu.icon ? menu.icon + ' ' : ''}${menu.name}</td>
                         <td><code>${menu.path}</code></td>
@@ -524,6 +549,7 @@
                 document.getElementById('menuForm').reset();
                 document.getElementById('menuId').value = '';
                 document.getElementById('isActive').checked = true;
+                document.getElementById('menuIcon').value = ''; // 아이콘 입력 필드 초기화
                 resetIconSuggestions();
                 document.getElementById('menuModal').style.display = 'block';
             }
@@ -543,59 +569,85 @@
                 document.getElementById('isActive').checked = menu.isActive;
                 document.getElementById('menuModal').style.display = 'block';
                 
-                // 아이콘 추천 표시
-                lastMenuName = menu.name;
-                suggestIconWithAI();
+                lastMenuName = menu.name; // Keep track of current name for refresh button
+                // When editing, if there's an icon, show refresh button
+                const refreshBtn = document.getElementById('refreshBtn');
+                const getSuggestionBtn = document.getElementById('getSuggestionBtn');
+
+                if (menu.icon) {
+                    refreshBtn.style.display = 'inline-flex';
+                    getSuggestionBtn.style.display = 'none'; // Hide initial suggestion button
+                } else {
+                    refreshBtn.style.display = 'none';
+                    getSuggestionBtn.style.display = 'inline-flex';
+                }
+                document.getElementById('getSuggestionBtn').textContent = '아이콘 추천받기';
             }
 
             function closeModal() {
                 document.getElementById('menuModal').style.display = 'none';
                 lastMenuName = '';
+                document.getElementById('getSuggestionBtn').textContent = '아이콘 추천받기';
+                document.getElementById('refreshBtn').style.display = 'none';
+                document.getElementById('getSuggestionBtn').style.display = 'inline-flex';
             }
 
             function resetIconSuggestions() {
                 const suggestionsDiv = document.getElementById('iconSuggestions');
-                suggestionsDiv.innerHTML = '<div class="suggestion-placeholder">💡 메뉴명을 입력하면 AI가 아이콘을 추천합니다</div>';
+                const getSuggestionBtn = document.getElementById('getSuggestionBtn');
+                const refreshBtn = document.getElementById('refreshBtn');
+
+                suggestionsDiv.innerHTML = '<div class="suggestion-placeholder">💡 메뉴명을 입력하고 \'아이콘 추천받기\' 버튼을 클릭하면 AI가 아이콘을 추천합니다</div>';
                 suggestionsDiv.classList.add('empty');
                 suggestionsDiv.classList.remove('has-items', 'loading');
-                document.getElementById('refreshBtn').style.display = 'none';
+                
+                getSuggestionBtn.style.display = 'inline-flex';
+                getSuggestionBtn.textContent = '아이콘 추천받기';
+                refreshBtn.style.display = 'none';
             }
 
-            // 디바운스 처리
-            function debouncedSuggestIcon() {
-                clearTimeout(debounceTimer);
-                const menuName = document.getElementById('menuName').value.trim();
+            // 디바운스 처리 (이제 사용되지 않음, 제거 예정)
+            // function debouncedSuggestIcon() {
+            //     clearTimeout(debounceTimer);
+            //     const menuName = document.getElementById('menuName').value.trim();
                 
-                if (!menuName) {
-                    resetIconSuggestions();
-                    return;
-                }
+            //     if (!menuName) {
+            //         resetIconSuggestions();
+            //         return;
+            //     }
                 
-                debounceTimer = setTimeout(() => {
-                    if (menuName !== lastMenuName) {
-                        lastMenuName = menuName;
-                        suggestIconWithAI();
-                    }
-                }, 800); // 0.8초 대기
-            }
+            //     debounceTimer = setTimeout(() => {
+            //         if (menuName !== lastMenuName) {
+            //             lastMenuName = menuName;
+            //             suggestIconWithAI();
+            //         }
+            //     }, 800); // 0.8초 대기
+            // }
 
             // AI 기반 아이콘 추천
             async function suggestIconWithAI() {
                 const menuName = document.getElementById('menuName').value.trim();
                 
                 if (!menuName) {
+                    showToast('메뉴명을 입력하세요.', 'error');
                     resetIconSuggestions();
                     return;
                 }
                 
                 const suggestionsDiv = document.getElementById('iconSuggestions');
+                const getSuggestionBtn = document.getElementById('getSuggestionBtn');
                 const refreshBtn = document.getElementById('refreshBtn');
-                
+
+                let targetButton = event.target; // Determine which button triggered the call
+
                 // 로딩 상태
                 suggestionsDiv.classList.remove('empty', 'has-items');
                 suggestionsDiv.classList.add('loading');
                 suggestionsDiv.innerHTML = '<div class="loading-spinner"></div>';
-                refreshBtn.disabled = true;
+                
+                targetButton.disabled = true;
+                const originalButtonText = targetButton.textContent;
+                targetButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 추천 중...';
                 
                 try {
                     const response = await fetch('/mngt/menu/api/suggest-icon', {
@@ -619,6 +671,7 @@
                     
                     // 아이콘 표시
                     displayIconSuggestions(iconData.icons);
+                    showToast('아이콘이 성공적으로 추천되었습니다.', 'success');
                     
                 } catch (error) {
                     console.error('AI 추천 실패:', error);
@@ -628,8 +681,12 @@
                     const fallbackIcons = getFallbackIcons(menuName);
                     displayIconSuggestions(fallbackIcons);
                 } finally {
+                    targetButton.disabled = false;
+                    targetButton.innerHTML = originalButtonText;
+
+                    // Hide initial suggestion button, show refresh button
+                    getSuggestionBtn.style.display = 'none';
                     refreshBtn.style.display = 'inline-flex';
-                    refreshBtn.disabled = false;
                 }
             }
 
@@ -700,6 +757,46 @@
                     item.classList.remove('selected');
                 });
                 event.target.closest('.icon-suggestion-item').classList.add('selected');
+            }
+
+            function initSortable() {
+                const tbody = document.getElementById('menuTableBody');
+                if (sortable) {
+                    sortable.destroy();
+                }
+                
+                sortable = new Sortable(tbody, {
+                    handle: '.drag-handle',
+                    animation: 150,
+                    ghostClass: 'sortable-ghost',
+                    chosenClass: 'sortable-chosen',
+                    onEnd: function (evt) {
+                        const menuIds = Array.from(tbody.querySelectorAll('tr')).map(row => row.dataset.menuId);
+                        saveMenuOrder(menuIds);
+                    }
+                });
+            }
+
+            async function saveMenuOrder(menuIds) {
+                try {
+                    const response = await fetch('/mngt/menu/api/update-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(menuIds)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showToast(result.message);
+                        loadMenus(); // 순서가 즉시 반영되도록 다시 로드
+                    } else {
+                        showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('메뉴 순서 저장 실패:', error);
+                    showToast('메뉴 순서 저장 중 오류가 발생했습니다.', 'error');
+                }
             }
 
             document.getElementById('menuForm').addEventListener('submit', async function(e) {
