@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>AI 다국어 번역기</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
+        <style>
+            .translator-container {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 1.5rem;
+                margin-top: 1rem;
+            }
+            .translator-box {
+                display: flex;
+                flex-direction: column;
+            }
+            .lang-selector {
+                display: flex;
+                gap: 0.5rem;
+                margin-bottom: 1rem;
+                flex-wrap: wrap;
+            }
+            .lang-btn {
+                padding: 0.5rem 1rem;
+                border: 2px solid #e2e8f0;
+                background: white;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all 0.2s;
+                font-size: 0.85rem;
+            }
+            .lang-btn:hover {
+                border-color: #667eea;
+            }
+            .lang-btn.active {
+                background: #667eea;
+                color: white;
+                border-color: #667eea;
+            }
+            textarea.form-control {
+                flex-grow: 1;
+                resize: none;
+                font-size: 0.95rem;
+                min-height: 250px;
+            }
+            .output-box {
+                background-color: #f8f9fa;
+                border: 1px solid #e2e8f0;
+            }
+            .swap-btn-container {
+                grid-column: 1 / -1;
+                text-align: center;
+                margin: -0.75rem 0;
+            }
+            .swap-btn {
+                background: #fff;
+                border: 2px solid #e2e8f0;
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                cursor: pointer;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.2rem;
+                transition: all 0.2s;
+            }
+            .swap-btn:hover {
+                background: #667eea;
+                color: white;
+                transform: rotate(180deg);
+            }
+            .usage-badge {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                background: linear-gradient(135deg, #007bff 0%, #667eea 100%);
+                color: white;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+            }
+             .streaming-indicator {
+                display: none;
+                align-items: center;
+                gap: 0.5rem;
+                color: #667eea;
+                font-weight: 500;
+                margin-top: 1rem;
+            }
+            
+            .streaming-indicator.show {
+                display: flex;
+            }
+            
+            .streaming-dot {
+                width: 8px;
+                height: 8px;
+                background: #667eea;
+                border-radius: 50%;
+                animation: pulse 1.5s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.3; }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="tool-container">
+        <div class="page-header">
+            <h2>🌐 AI 다국어 번역기</h2>
+            <p class="description">Qwen 2 AI 모델을 사용하여 자연스러운 다국어 번역을 제공합니다.</p>
+            <div class="usage-badge">🤖 Qwen 2 7B 모델 사용</div>
+        </div>
+
+        <div class="tool-section card">
+            <div class="translator-container" id="translatorContainer">
+                <!-- Source Language Box -->
+                <div class="translator-box">
+                    <div class="lang-selector" id="sourceLangSelector">
+                        <button class="lang-btn active" data-lang="ko" onclick="selectLang('source', 'ko')">🇰🇷 한국어</button>
+                        <button class="lang-btn" data-lang="en" onclick="selectLang('source', 'en')">🇺🇸 영어</button>
+                        <button class="lang-btn" data-lang="ja" onclick="selectLang('source', 'ja')">🇯🇵 일본어</button>
+                        <button class="lang-btn" data-lang="zh" onclick="selectLang('source', 'zh')">🇨🇳 중국어</button>
+                    </div>
+                    <textarea id="textToTranslate" class="form-control" placeholder="번역할 텍스트를 입력하세요..."></textarea>
+                </div>
+
+                <!-- Target Language Box -->
+                <div class="translator-box">
+                    <div class="lang-selector" id="targetLangSelector">
+                        <button class="lang-btn" data-lang="ko" onclick="selectLang('target', 'ko')">🇰🇷 한국어</button>
+                        <button class="lang-btn active" data-lang="en" onclick="selectLang('target', 'en')">🇺🇸 영어</button>
+                        <button class="lang-btn" data-lang="ja" onclick="selectLang('target', 'ja')">🇯🇵 일본어</button>
+                        <button class="lang-btn" data-lang="zh" onclick="selectLang('target', 'zh')">🇨🇳 중국어</button>
+                    </div>
+                    <textarea id="translationResult" class="form-control output-box" placeholder="번역 결과" readonly></textarea>
+                </div>
+            </div>
+            
+            <div class="swap-btn-container">
+                <button class="swap-btn" onclick="swapLanguages()" title="언어 전환">⇄</button>
+            </div>
+
+            <div class="button-group">
+                <button class="btn btn-primary" onclick="translateText()" id="translateBtn">
+                    🌍 번역하기
+                </button>
+                <button class="btn btn-secondary" onclick="clearText()">🗑️ 초기화</button>
+            </div>
+            
+            <div class="streaming-indicator" id="streamingIndicator">
+                <div class="streaming-dot"></div>
+                <span>AI가 번역 중입니다...</span>
+            </div>
+            
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+        
+        <div class="examples" style="background: #e7f3ff;">
+            <h4 style="color: #004085;">💡 예문 (클릭하여 입력)</h4>
+            <div class="example-item" onclick="fillTextExample('ko_en')">
+                "이것은 AI 번역기에 대한 테스트입니다." (한국어 → 영어)
+            </div>
+            <div class="example-item" onclick="fillTextExample('en_ko')">
+                "This is a test for the AI translator." (영어 → 한국어)
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="extra-js">
+    <script th:src="@{/js/common-utils.js}"></script>
+    <script>
+        let sourceLang = 'ko';
+        let targetLang = 'en';
+
+        function selectLang(type, lang) {
+            if (type === 'source') {
+                sourceLang = lang;
+            } else {
+                targetLang = lang;
+            }
+            
+            const selector = document.getElementById(type + 'LangSelector');
+            selector.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            selector.querySelector(`[data-lang="${lang}"]`).classList.add('active');
+        }
+
+        async function translateText() {
+            const textToTranslate = document.getElementById('textToTranslate').value.trim();
+            if (!textToTranslate) {
+                UiUtils.showError('번역할 텍스트를 입력하세요.');
+                return;
+            }
+            if(textToTranslate.length > 2000) {
+                 UiUtils.showError('텍스트가 너무 깁니다. 2000자 이하로 줄여주세요.');
+                return;
+            }
+
+            const translateBtn = document.getElementById('translateBtn');
+            const streamingIndicator = document.getElementById('streamingIndicator');
+            const resultBox = document.getElementById('translationResult');
+
+            try {
+                UiUtils.hideError();
+                translateBtn.disabled = true;
+                translateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 번역 중...';
+                streamingIndicator.style.display = 'flex';
+                resultBox.value = 'AI가 번역 중입니다...';
+
+                const response = await fetch('/ai-translator/api/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: textToTranslate, sourceLang, targetLang }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    resultBox.value = data.result;
+                    UiUtils.showSuccess('번역이 완료되었습니다.');
+                } else {
+                    resultBox.value = '';
+                    UiUtils.showError(data.message || '번역 중 오류가 발생했습니다.');
+                }
+
+            } catch (error) {
+                console.error('번역 API 오류:', error);
+                resultBox.value = '';
+                UiUtils.showError('네트워크 오류 또는 서버 문제 발생');
+            } finally {
+                translateBtn.disabled = false;
+                translateBtn.innerHTML = '🌍 번역하기';
+                streamingIndicator.style.display = 'none';
+            }
+        }
+
+        function clearText() {
+            document.getElementById('textToTranslate').value = '';
+            document.getElementById('translationResult').value = '';
+            UiUtils.hideError();
+        }
+        
+        function swapLanguages() {
+            const tempLang = sourceLang;
+            sourceLang = targetLang;
+            targetLang = tempLang;
+
+            // Update button states
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`#sourceLangSelector [data-lang="${sourceLang}"]`).classList.add('active');
+            document.querySelector(`#targetLangSelector [data-lang="${targetLang}"]`).classList.add('active');
+            
+            // Swap text content
+            const sourceText = document.getElementById('textToTranslate');
+            const resultText = document.getElementById('translationResult');
+            const tempText = sourceText.value;
+            sourceText.value = resultText.value;
+            resultText.value = tempText;
+        }
+
+        function fillTextExample(type) {
+            const examples = {
+                'ko_en': {
+                    text: "이것은 AI 번역기에 대한 테스트입니다. 얼마나 자연스럽게 번역될까요?",
+                    source: "ko",
+                    target: "en"
+                },
+                'en_ko': {
+                    text: "This is a test for the AI translator. How naturally will it be translated?",
+                    source: "en",
+                    target: "ko"
+                }
+            };
+            
+            const example = examples[type];
+            if(example) {
+                document.getElementById('textToTranslate').value = example.text;
+                selectLang('source', example.source);
+                selectLang('target', example.target);
+                clearText(); // Clear previous results
+                document.getElementById('textToTranslate').value = example.text;
+            }
+        }
+    </script>
+</th:block>
+</body>
+</html>
