@@ -13,6 +13,7 @@ pipeline {
         JAR_NAME = 'webapp-1.0.0.jar'
         GIT_REPO = 'https://github.com/hsm0711/toy.git'
         CONFIG_BACKUP_DIR = '/var/www/webapp/config-backup'
+        DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1466744325269491723/1oapLRbzkuk4lN89KQEFDVrfFOt9goxmThZ1k1EW0PPutI2gHPd355T3NonbrLKHnQM'
     }
     
     stages {
@@ -215,79 +216,69 @@ pipeline {
             echo '🎉 배포 성공!'
             script {
                 def deployTime = new Date().format('yyyy-MM-dd HH:mm:ss')
-                emailext(
-                    subject: "✅ 배포 성공: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                    body: """
-                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                        🎉 배포 성공!
-                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                        
-                        📋 빌드 정보
-                        • 프로젝트: ${env.JOB_NAME}
-                        • 빌드 번호: ${env.BUILD_NUMBER}
-                        • 빌드 URL: ${env.BUILD_URL}
-                        
-                        🚀 배포 정보
-                        • 배포 서버: 192.168.1.112
-                        • 배포 경로: /var/www/webapp
-                        • JAR 파일: webapp-1.0.0.jar
-                        • 배포 시간: ${deployTime}
-                        
-                        ⚙️  설정 파일
-                        • 환경 변수: /var/www/webapp/.env.production
-                        • 설정 백업: /var/www/webapp/config-backup
-                        
-                        ✅ Health Check 통과
-                        • 애플리케이션이 정상적으로 실행 중입니다.
-                        
-                        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    """,
-                    to: 'your-email@example.com'
-                )
+                def discordSuccessMessage = """
+                    {
+                      "username": "Jenkins Pipeline",
+                      "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
+                      "embeds": [
+                        {
+                          "title": "✅ 배포 성공: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                          "description": "🎉 애플리케이션이 정상적으로 실행 중입니다!",
+                          "color": 65280,
+                          "fields": [
+                            {
+                              "name": "📋 빌드 정보",
+                              "value": "• 프로젝트: ${env.JOB_NAME}\\n• 빌드 번호: ${env.BUILD_NUMBER}\\n• 빌드 URL: ${env.BUILD_URL}"
+                            },
+                            {
+                              "name": "🚀 배포 정보",
+                              "value": "• 배포 서버: ${DEPLOY_SERVER}\\n• 배포 경로: ${DEPLOY_PATH}\\n• JAR 파일: ${JAR_NAME}\\n• 배포 시간: ${deployTime}"
+                            }
+                          ],
+                          "footer": {
+                            "text": "Jenkins CI/CD"
+                          },
+                          "timestamp": "${deployTime}"
+                        }
+                      ]
+                    }
+                """
+                sh "curl -H \"Content-Type: application/json\" -X POST -d '${discordSuccessMessage}' ${DISCORD_WEBHOOK_URL}"
             }
         }
         failure {
             echo '❌ 배포 실패!'
-            emailext(
-                subject: "❌ 배포 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: """
-                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    ❌ 배포 실패!
-                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    
-                    📋 빌드 정보
-                    • 프로젝트: ${env.JOB_NAME}
-                    • 빌드 번호: ${env.BUILD_NUMBER}
-                    • 빌드 URL: ${env.BUILD_URL}
-                    
-                    🔍 일반적인 원인
-                    1. .env.production 파일 누락
-                       → 경로: /var/www/webapp/.env.production
-                    
-                    2. Maven 빌드 오류
-                       → 로그 확인 필요
-                    
-                    3. Health Check 실패
-                       → journalctl -u webapp -n 100
-                    
-                    4. 배포 서버 연결 실패
-                       → SSH 연결 확인
-                    
-                    5. 데이터베이스 연결 오류
-                       → .env.production의 DB 설정 확인
-                    
-                    📝 복구 방법
-                    ssh root@192.168.1.112
-                    cd /var/www/webapp
-                    ls -lh backup/  # 백업 파일 확인
-                    cp backup/webapp-1.0.0.jar.YYYYMMDD_HHMMSS webapp-1.0.0.jar
-                    systemctl restart webapp
-                    
-                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                """,
-                to: 'your-email@example.com'
-            )
-        }
+            script {
+                def deployTime = new Date().format('yyyy-MM-dd HH:mm:ss')
+                def discordFailureMessage = """
+                    {
+                      "username": "Jenkins Pipeline",
+                      "avatar_url": "https://www.jenkins.io/images/logos/jenkins/jenkins.png",
+                      "embeds": [
+                        {
+                          "title": "❌ 배포 실패: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                          "description": "배포 중 오류가 발생했습니다. 자세한 내용은 빌드 로그를 확인하세요.",
+                          "color": 16711680,
+                          "fields": [
+                            {
+                              "name": "📋 빌드 정보",
+                              "value": "• 프로젝트: ${env.JOB_NAME}\\n• 빌드 번호: ${env.BUILD_NUMBER}\\n• 빌드 URL: ${env.BUILD_URL}"
+                            },
+                            {
+                              "name": "🔍 일반적인 원인 및 복구 방법",
+                              "value": "1. .env.production 파일 누락\\n   → 경로: ${DEPLOY_PATH}/.env.production\\n\\n2. Maven 빌드 오류\\n   → 로그 확인 필요\\n\\n3. Health Check 실패\\n   → journalctl -u webapp -n 100\\n\\n4. 배포 서버 연결 실패\\n   → SSH 연결 확인\\n\\n5. 데이터베이스 연결 오류\\n   → .env.production의 DB 설정 확인\\n\\n📝 복구 방법\\nssh root@${DEPLOY_SERVER}\\ncd ${DEPLOY_PATH}\\nls -lh backup/  # 백업 파일 확인\\ncp backup/${JAR_NAME}.YYYYMMDD_HHMMSS ${JAR_NAME}\\nsystemctl restart webapp"
+                            }
+                          ],
+                          "footer": {
+                            "text": "Jenkins CI/CD"
+                          },
+                          "timestamp": "${deployTime}"
+                        }
+                      ]
+                    }
+                """
+                sh "curl -H \"Content-Type: application/json\" -X POST -d '${discordFailureMessage}' ${DISCORD_WEBHOOK_URL}"
+            }
         always {
             echo '=== 빌드 완료 ==='
             cleanWs()
