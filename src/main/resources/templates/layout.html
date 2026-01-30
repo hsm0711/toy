@@ -46,7 +46,7 @@
 
                 <li class="dropdown" th:if="${#lists.size(menus) > 4}">
                     <a href="#" class="dropdown-toggle" id="moreMenuLink" aria-haspopup="true" aria-expanded="false"
-                       th:classappend="${!#lists.isEmpty(#lists.select(menus.subList(4, #lists.size(menus)), m -> true)) ? 'active' : ''}">
+                       th:classappend="${!#lists.isEmpty(#lists.select(menus.subList(4, #lists.size(menus)), '(#this != null and #this.path != null and #this.path == ''/'' and #vars.currentPage == ''home'') or (#this != null and #this.path != null and #this.path.length() > 1 and #vars.currentPage == #this.path.substring(1))')) ? 'active' : ''}">
                         더보기 <span class="arrow-down"></span>
                     </a>
                     <ul class="dropdown-menu" id="moreMenuDropdown" aria-labelledby="moreMenuLink">
