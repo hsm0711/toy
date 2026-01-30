@@ -243,7 +243,7 @@ pipeline {
                       ]
                     }
                 """
-                sh "curl -H \"Content-Type: application/json\" -X POST -d '${discordSuccessMessage}' ${DISCORD_WEBHOOK_URL}"
+                sh "curl -v --fail -H \"Content-Type: application/json\" -X POST -d '${discordSuccessMessage}' ${DISCORD_WEBHOOK_URL}"
             }
         }
         failure {
@@ -277,7 +277,7 @@ pipeline {
                       ]
                     }
                 """
-                sh "curl -H \"Content-Type: application/json\" -X POST -d '${discordFailureMessage}' ${DISCORD_WEBHOOK_URL}"
+                sh "curl -v --fail -H \"Content-Type: application/json\" -X POST -d '${discordFailureMessage}' ${DISCORD_WEBHOOK_URL}"
             }
         } // Missing closing brace added here
         always {
