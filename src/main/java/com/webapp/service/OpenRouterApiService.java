@@ -26,7 +26,7 @@ public class OpenRouterApiService {
     private String apiKey;
     
     private static final String OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-    private static final String MODEL = "meta-llama/llama-3.1-8b-instruct:free";
+    private static final String MODEL = "meta-llama/llama-3.1-8b-instruct";
     
     // 톤별 시스템 프롬프트
     private static final Map<String, String> TONE_PROMPTS = Map.of(
@@ -69,7 +69,7 @@ public class OpenRouterApiService {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.set("Authorization", "Bearer " + apiKey);
-            headers.set("HTTP-Referer", "https://playground-app.com");
+            headers.set("HTTP-Referer", "https://toy.playcloud8.com");
             headers.set("X-Title", "Playground Tone Transformer");
             
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
