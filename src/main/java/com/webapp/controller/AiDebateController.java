@@ -1,3 +1,5 @@
+package com.webapp.controller;
+
 import org.springframework.beans.factory.annotation.Value;
 import com.webapp.service.MenuService;
 import com.webapp.service.OpenRouterApiService;
@@ -11,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Comparator;
 
 /**
  * AI vs AI 토론 배틀 컨트롤러
