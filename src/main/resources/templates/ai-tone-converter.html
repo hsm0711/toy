@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>AI 톤 변환기</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
+        <style>
+            .tone-grid {
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: 1rem;
+                margin-bottom: 2rem;
+            }
+            
+            .tone-card {
+                padding: 1.5rem;
+                border: 2px solid #e2e8f0;
+                border-radius: 12px;
+                background: white;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                text-align: center;
+            }
+            
+            .tone-card:hover {
+                border-color: #667eea;
+                background: #f7faff;
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            }
+            
+            .tone-card.active {
+                border-color: #667eea;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                transform: translateY(-2px);
+                box-shadow: 0 6px 16px rgba(102, 126, 234, 0.3);
+            }
+            
+            .tone-icon {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+                display: block;
+            }
+            
+            .tone-label {
+                font-weight: 600;
+                font-size: 0.95rem;
+            }
+            
+            .converter-layout {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 2rem;
+                margin-top: 2rem;
+            }
+            
+            .converter-panel {
+                background: white;
+                padding: 2rem;
+                border-radius: 12px;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            }
+            
+            .converter-panel h3 {
+                color: #2d3748;
+                margin-bottom: 1rem;
+                font-size: 1.3rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .panel-textarea {
+                width: 100%;
+                min-height: 300px;
+                padding: 1rem;
+                border: 2px solid #e2e8f0;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-family: inherit;
+                resize: vertical;
+                transition: all 0.3s;
+            }
+            
+            .panel-textarea:focus {
+                outline: none;
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+            
+            .panel-textarea:disabled {
+                background: #f8f9fa;
+                cursor: not-allowed;
+            }
+            
+            .char-count {
+                text-align: right;
+                font-size: 0.85rem;
+                color: #6c757d;
+                margin-top: 0.5rem;
+            }
+            
+            .char-count.warning {
+                color: #ffc107;
+                font-weight: 600;
+            }
+            
+            .char-count.error {
+                color: #dc3545;
+                font-weight: 600;
+            }
+            
+            .usage-badge {
+                display: inline-block;
+                padding: 0.5rem 1rem;
+                background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+                color: white;
+                border-radius: 20px;
+                font-size: 0.85rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+            }
+            
+            .streaming-indicator {
+                display: none;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                color: #667eea;
+                font-weight: 500;
+                padding: 1rem;
+                background: #f7faff;
+                border-radius: 8px;
+                margin-top: 1rem;
+            }
+            
+            .streaming-indicator.show {
+                display: flex;
+            }
+            
+            .streaming-dot {
+                width: 8px;
+                height: 8px;
+                background: #667eea;
+                border-radius: 50%;
+                animation: pulse 1.5s infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; transform: scale(1); }
+                50% { opacity: 0.3; transform: scale(0.8); }
+            }
+            
+            .output-placeholder {
+                color: #6c757d;
+                font-style: italic;
+                padding: 1rem;
+                display: none;
+            }
+            
+            .output-placeholder.show {
+                display: block;
+            }
+            
+            @media (max-width: 1024px) {
+                .tone-grid {
+                    grid-template-columns: repeat(3, 1fr);
+                }
+                
+                .converter-layout {
+                    grid-template-columns: 1fr;
+                }
+            }
+            
+            @media (max-width: 768px) {
+                .tone-grid {
+                    grid-template-columns: repeat(2, 1fr);
+                    gap: 0.75rem;
+                }
+                
+                .tone-card {
+                    padding: 1rem;
+                }
+                
+                .tone-icon {
+                    font-size: 1.5rem;
+                }
+                
+                .tone-label {
+                    font-size: 0.85rem;
+                }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+    <div layout:fragment="content">
+        <div class="tool-container">
+            <div class="page-header">
+                <h2>✨ AI 문장 톤 변환기</h2>
+                <p class="description">AI가 문장의 톤을 다양한 스타일로 변환합니다.</p>
+                <div class="usage-badge">🤖 OpenRouter - Llama 3.1 8B</div>
+            </div>
+
+            <div class="tool-section card">
+                <h3>톤 스타일 선택</h3>
+                <div class="tone-grid">
+                    <div class="tone-card active" data-tone="polite" onclick="selectTone('polite')">
+                        <span class="tone-icon">🙏</span>
+                        <div class="tone-label">정중하게</div>
+                    </div>
+                    
+                    <div class="tone-card" data-tone="aggressive" onclick="selectTone('aggressive')">
+                        <span class="tone-icon">💢</span>
+                        <div class="tone-label">공격적으로</div>
+                    </div>
+                    
+                    <div class="tone-card" data-tone="developer" onclick="selectTone('developer')">
+                        <span class="tone-icon">👨‍💻</span>
+                        <div class="tone-label">개발자 말투</div>
+                    </div>
+                    
+                    <div class="tone-card" data-tone="formal" onclick="selectTone('formal')">
+                        <span class="tone-icon">🎩</span>
+                        <div class="tone-label">격식있게</div>
+                    </div>
+                    
+                    <div class="tone-card" data-tone="casual" onclick="selectTone('casual')">
+                        <span class="tone-icon">😎</span>
+                        <div class="tone-label">캐주얼하게</div>
+                    </div>
+                    
+                    <div class="tone-card" data-tone="professional" onclick="selectTone('professional')">
+                        <span class="tone-icon">💼</span>
+                        <div class="tone-label">전문가답게</div>
+                    </div>
+                    
+                    <div class="tone-card" data-tone="friendly" onclick="selectTone('friendly')">
+                        <span class="tone-icon">🤗</span>
+                        <div class="tone-label">친근하게</div>
+                    </div>
+                    
+                    <div class="tone-card" data-tone="humorous" onclick="selectTone('humorous')">
+                        <span class="tone-icon">😄</span>
+                        <div class="tone-label">유머러스하게</div>
+                    </div>
+                </div>
+
+                <div class="converter-layout">
+                    <!-- 입력 패널 -->
+                    <div class="converter-panel">
+                        <h3>📝 원문 입력</h3>
+                        <textarea 
+                            id="inputText" 
+                            class="panel-textarea" 
+                            placeholder="변환할 문장을 입력하세요..."
+                            oninput="updateCharCount()"
+                            onkeydown="handleKeyPress(event)"></textarea>
+                        <div class="char-count" id="charCount">0 / 2000</div>
+                        
+                        <div class="button-group" style="margin-top: 1rem;">
+                            <button class="btn btn-primary" onclick="convertTone()" id="convertBtn">
+                                ✨ AI 톤 변환
+                            </button>
+                            <button class="btn btn-secondary" onclick="clearAll()">🗑️ 초기화</button>
+                        </div>
+                        
+                        <div class="streaming-indicator" id="streamingIndicator">
+                            <div class="streaming-dot"></div>
+                            <span>AI가 변환 중입니다...</span>
+                        </div>
+                    </div>
+
+                    <!-- 출력 패널 -->
+                    <div class="converter-panel">
+                        <h3>✅ 변환 결과</h3>
+                        <textarea 
+                            id="outputText" 
+                            class="panel-textarea" 
+                            placeholder="변환된 문장이 여기에 표시됩니다"
+                            readonly></textarea>
+                        <div class="output-placeholder show" id="outputPlaceholder">
+                            톤을 선택하고 원문을 입력한 후 "AI 톤 변환" 버튼을 클릭하세요.
+                        </div>
+                        
+                        <button class="copy-btn" onclick="copyResult()" style="margin-top: 1rem; display: none;" id="copyBtn">
+                            📋 결과 복사
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="examples" style="background: #e7f3ff;">
+                <h4 style="color: #004085;">💡 예제 문장 (클릭하여 입력)</h4>
+                <div class="example-item" onclick="fillExample('meeting')">
+                    💼 "내일 회의 참석 부탁합니다"
+                </div>
+                <div class="example-item" onclick="fillExample('task')">
+                    📋 "이 작업 빨리 처리해주세요"
+                </div>
+                <div class="example-item" onclick="fillExample('complaint')">
+                    😤 "이거 왜 안 되는 거죠?"
+                </div>
+                <div class="example-item" onclick="fillExample('thanks')">
+                    🙏 "도움 주셔서 감사합니다"
+                </div>
+            </div>
+            
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+
+    <th:block layout:fragment="extra-js">
+        <script th:src="@{/js/common-utils.js}"></script>
+        
+        <script>
+            let currentTone = 'polite';
+
+            function selectTone(tone) {
+                currentTone = tone;
+                
+                document.querySelectorAll('.tone-card').forEach(card => {
+                    card.classList.remove('active');
+                });
+                document.querySelector(`[data-tone="${tone}"]`).classList.add('active');
+            }
+
+            function updateCharCount() {
+                const text = document.getElementById('inputText').value;
+                const count = text.length;
+                const charCountDiv = document.getElementById('charCount');
+                
+                charCountDiv.textContent = `${count} / 2000`;
+                
+                if (count > 2000) {
+                    charCountDiv.classList.add('error');
+                    charCountDiv.classList.remove('warning');
+                } else if (count > 1800) {
+                    charCountDiv.classList.add('warning');
+                    charCountDiv.classList.remove('error');
+                } else {
+                    charCountDiv.classList.remove('error', 'warning');
+                }
+            }
+
+            function handleKeyPress(event) {
+                // Enter 키로 변환 실행 (Shift+Enter는 줄바꿈)
+                if (event.key === 'Enter' && !event.shiftKey) {
+                    event.preventDefault();
+                    convertTone();
+                }
+            }
+
+            async function convertTone() {
+                const text = document.getElementById('inputText').value.trim();
+                
+                if (!text) {
+                    UiUtils.showError('변환할 문장을 입력하세요.');
+                    return;
+                }
+                
+                if (text.length > 2000) {
+                    UiUtils.showError('텍스트가 너무 깁니다. 2000자 이하로 줄여주세요.');
+                    return;
+                }
+                
+                const convertBtn = document.getElementById('convertBtn');
+                const outputText = document.getElementById('outputText');
+                const outputPlaceholder = document.getElementById('outputPlaceholder');
+                const streamingIndicator = document.getElementById('streamingIndicator');
+                const copyBtn = document.getElementById('copyBtn');
+                
+                try {
+                    UiUtils.hideError();
+                    convertBtn.disabled = true;
+                    convertBtn.textContent = '⏳ 변환 중...';
+                    streamingIndicator.classList.add('show');
+                    outputText.value = '';
+                    outputPlaceholder.classList.remove('show');
+                    copyBtn.style.display = 'none';
+                    
+                    const data = await ApiClient.postJson('/ai-tone-converter/api/convert', {
+                        text: text,
+                        tone: currentTone
+                    });
+
+                    if (data.success) {
+                        outputText.value = data.result;
+                        outputPlaceholder.classList.remove('show');
+                        copyBtn.style.display = 'inline-block';
+                        UiUtils.showSuccess('톤 변환이 완료되었습니다!');
+                    } else {
+                        UiUtils.showError(data.message || '변환 중 오류가 발생했습니다.');
+                        outputPlaceholder.classList.add('show');
+                    }
+                } catch (error) {
+                    console.error('AI 변환 오류:', error);
+                    UiUtils.showError('변환 중 오류가 발생했습니다: ' + error.message);
+                    outputPlaceholder.classList.add('show');
+                } finally {
+                    convertBtn.disabled = false;
+                    convertBtn.textContent = '✨ AI 톤 변환';
+                    streamingIndicator.classList.remove('show');
+                }
+            }
+
+            function copyResult() {
+                const outputText = document.getElementById('outputText').value;
+                ClipboardUtils.copy(outputText);
+            }
+
+            function clearAll() {
+                document.getElementById('inputText').value = '';
+                document.getElementById('outputText').value = '';
+                document.getElementById('outputPlaceholder').classList.add('show');
+                document.getElementById('copyBtn').style.display = 'none';
+                updateCharCount();
+                UiUtils.hideError();
+            }
+
+            function fillExample(type) {
+                const examples = {
+                    'meeting': '내일 회의 참석 부탁합니다',
+                    'task': '이 작업 빨리 처리해주세요',
+                    'complaint': '이거 왜 안 되는 거죠?',
+                    'thanks': '도움 주셔서 감사합니다'
+                };
+                
+                document.getElementById('inputText').value = examples[type] || examples['meeting'];
+                updateCharCount();
+            }
+
+            window.onload = function() {
+                updateCharCount();
+            };
+        </script>
+    </th:block>
+</body>
+</html>
