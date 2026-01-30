@@ -12,6 +12,64 @@
     <!-- 페이지별 CSS -->
     <th:block layout:fragment="extra-css"></th:block>
     <link rel="icon" type="image/svg+xml" th:href="@{/image/favicon.svg}">
+    <style>
+        .dropdown {
+            position: relative;
+        }
+        .dropdown-toggle .arrow-down {
+            display: inline-block;
+            margin-left: 0.3rem;
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 5px solid;
+            transition: transform 0.2s ease-in-out;
+        }
+        .dropdown.show .dropdown-toggle .arrow-down {
+            transform: rotate(180deg);
+        }
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            z-index: 1000;
+            list-style: none;
+            padding: 0.5rem 0;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+        }
+        .dropdown-menu a {
+            color: #333;
+            padding: 0.75rem 1.5rem;
+            text-decoration: none;
+            display: block;
+            text-align: left;
+            font-size: 0.95rem;
+        }
+        .dropdown-menu a:hover {
+            background-color: #f1f1f1;
+        }
+        .dropdown.show .dropdown-menu {
+            display: block;
+        }
+        
+        @media (max-width: 768px) {
+            .dropdown-menu {
+                position: static;
+                transform: none;
+                box-shadow: none;
+                background-color: transparent;
+                border-radius: 0;
+                padding-left: 1rem;
+            }
+        }
+    </style>
 </head>
 <body>
     <!-- 모바일 메뉴 오버레이 -->
@@ -32,14 +90,33 @@
                 <span></span>
             </button>
             
-            <!-- 메뉴 리스트 -->
+            <!-- 메뉴 리스트 (개선) -->
             <ul class="nav-menu" id="navMenu" role="navigation">
-                <li th:each="menu : ${menus}">
-                    <a th:href="@{${menu.path}}" 
-                       th:text="${menu.name}"
-                       th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''"
-                       th:attr="aria-current=${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'page' : null">
+                <th:block th:each="menu, iterStat : ${menus}">
+                    <li th:if="${iterStat.index < 4}">
+                        <a th:href="@{${menu.path}}"
+                           th:text="${menu.name}"
+                           th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''"
+                           th:attr="aria-current=${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'page' : null">
+                        </a>
+                    </li>
+                </th:block>
+
+                <li class="dropdown" th:if="${#lists.size(menus) > 4}">
+                    <a href="#" class="dropdown-toggle" id="moreMenuLink" aria-haspopup="true" aria-expanded="false">
+                        더보기 <span class="arrow-down"></span>
                     </a>
+                    <ul class="dropdown-menu" id="moreMenuDropdown" aria-labelledby="moreMenuLink">
+                        <th:block th:each="menu, iterStat : ${menus}">
+                            <li th:if="${iterStat.index >= 4}">
+                                <a th:href="@{${menu.path}}"
+                                   th:text="${menu.name}"
+                                   th:classappend="${(menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''"
+                                   th:attr="aria-current=${(menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'page' : null">
+                                </a>
+                            </li>
+                        </th:block>
+                    </ul>
                 </li>
             </ul>
         </div>
@@ -138,6 +215,37 @@
             }
         });
         
+        // "더보기" 드롭다운 메뉴 기능
+        document.addEventListener('DOMContentLoaded', function() {
+            const moreMenuLink = document.getElementById('moreMenuLink');
+            const moreMenuDropdown = document.getElementById('moreMenuDropdown');
+
+            if (moreMenuLink && moreMenuDropdown) {
+                moreMenuLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // 모바일 뷰에서는 일반 링크처럼 동작하지 않도록 함
+                    if (window.innerWidth > 768) {
+                        this.parentElement.classList.toggle('show');
+                        const isExpanded = this.parentElement.classList.contains('show');
+                        this.setAttribute('aria-expanded', isExpanded);
+                    }
+                });
+
+                // 페이지 다른 곳 클릭 시 드롭다운 닫기
+                document.addEventListener('click', function(e) {
+                    if (!moreMenuLink.contains(e.target)) {
+                        const dropdown = moreMenuLink.parentElement;
+                        if (dropdown.classList.contains('show')) {
+                            dropdown.classList.remove('show');
+                            moreMenuLink.setAttribute('aria-expanded', 'false');
+                        }
+                    }
+                });
+            }
+        });
+
         // 스크롤 시 네비게이션 바 그림자 효과
         let lastScrollTop = 0;
         window.addEventListener('scroll', function() {
