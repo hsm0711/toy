@@ -87,9 +87,7 @@
                 const menuLinks = navMenu.querySelectorAll('a');
                 menuLinks.forEach(link => {
                     link.addEventListener('click', function() {
-                        if (window.innerWidth <= 768) {
-                            closeMenu();
-                        }
+                        closeMenu();
                     });
                 });
                 
@@ -100,14 +98,13 @@
                     }
                 });
                 
-                // 윈도우 리사이즈 시 메뉴 상태 초기화
+                // 윈도우 리사이즈 시 메뉴 상태 유지 (강제 닫기 로직 제거)
                 let resizeTimer;
                 window.addEventListener('resize', function() {
                     clearTimeout(resizeTimer);
                     resizeTimer = setTimeout(function() {
-                        if (window.innerWidth > 768) {
-                            closeMenu();
-                        }
+                        // 메뉴 상태는 햄버거 버튼에 의해 제어되므로, 여기서 강제로 닫지 않음.
+                        // 이전에 있었던 if (window.innerWidth > 768) { closeMenu(); } 로직 제거.
                     }, 250);
                 });
             }

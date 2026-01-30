@@ -81,41 +81,47 @@ body {
    ======================================== */
 .nav-menu {
     list-style: none;
-    display: flex;
-    gap: 0;
-    margin: 0;
-    padding: 0;
-    flex: 1;
-    overflow-x: auto;
-    overflow-y: hidden;
-    align-items: stretch;
-    
-    /* 스크롤바 스타일링 */
+    position: fixed; /* 고정 위치 */
+    top: 0;
+    right: -100%; /* 기본적으로 숨김 */
+    width: 100%; /* 화면 전체 너비 */
+    max-width: 320px; /* 최대 너비 설정 (모바일처럼) */
+    height: 100vh;
+    flex-direction: column; /* 세로 정렬 */
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    padding: 5rem 0 2rem;
+    box-shadow: -4px 0 10px rgba(0, 0, 0, 0.2);
+    transition: right 0.3s ease;
+    overflow-y: auto; /* 세로 스크롤 허용 */
+    overflow-x: hidden; /* 가로 스크롤 방지 */
+    z-index: 100;
+    align-items: flex-start; /* 좌측 정렬 */
+
+    /* 스크롤바 스타일링은 유지하되 세로 스크롤에 맞춰 조정 */
     scrollbar-width: thin;
     scrollbar-color: rgba(255,255,255,0.3) transparent;
 }
 
 .nav-menu::-webkit-scrollbar {
-    height: 4px;
+    width: 4px; /* 세로 스크롤바 폭 */
 }
-
 .nav-menu::-webkit-scrollbar-track {
     background: transparent;
 }
-
 .nav-menu::-webkit-scrollbar-thumb {
     background: rgba(255,255,255,0.3);
     border-radius: 2px;
 }
-
 .nav-menu::-webkit-scrollbar-thumb:hover {
     background: rgba(255,255,255,0.5);
 }
 
+.nav-menu.active {
+    right: 0; /* 활성화 시 보이도록 */
+}
+
 .nav-menu li {
-    display: flex;
-    align-items: stretch;
-    flex-shrink: 0;
+    width: 100%;
 }
 
 .nav-menu a {
@@ -123,49 +129,36 @@ body {
     text-decoration: none;
     font-weight: 500;
     font-size: 0.95rem;
-    padding: 0 1.5rem;
+    padding: 1rem 2rem; /* 모바일 메뉴처럼 넓게 */
     display: flex;
     align-items: center;
     white-space: nowrap;
     transition: all 0.3s ease;
-    border-bottom: 3px solid transparent;
-    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* 구분선 */
+    border-left: 4px solid transparent; /* 활성 표시 */
+    position: relative; /* after pseudo-element를 위해 */
 }
 
-.nav-menu a::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 0;
-    background: white;
-    transition: height 0.3s ease;
+.nav-menu a::after { /* 데스크탑에서 사용되던 밑줄 효과 제거 */
+    display: none;
 }
 
 .nav-menu a:hover {
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.nav-menu a:hover::after {
-    height: 3px;
+    background: rgba(255, 255, 255, 0.15);
+    border-left-color: white;
 }
 
 .nav-menu a.active {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
+    border-left-color: white;
     font-weight: 600;
-}
-
-.nav-menu a.active::after {
-    height: 3px;
-    box-shadow: 0 0 10px rgba(255,255,255,0.5);
 }
 
 /* ========================================
    모바일 메뉴 토글 버튼
    ======================================== */
 .menu-toggle {
-    display: none;
+    display: flex; /* 항상 보이도록 */
     flex-direction: column;
     justify-content: center;
     align-items: center;
@@ -175,7 +168,7 @@ body {
     border: none;
     cursor: pointer;
     padding: 10px;
-    margin-right: 1rem;
+    margin-left: auto; /* 로고 옆에 자동으로 정렬 */
 }
 
 .menu-toggle span {
@@ -266,10 +259,10 @@ footer p {
         font-size: 1.6rem;
     }
     
-    .nav-menu a {
-        padding: 0 1.2rem;
+    /* 태블릿 크기에서 메뉴 항목 폰트 크기 조정 (필요 시) */
+    /* .nav-menu a {
         font-size: 0.9rem;
-    }
+    } */
 }
 
 /* ========================================
@@ -296,53 +289,13 @@ footer p {
         font-size: 1.5rem;
     }
     
-    /* 모바일에서 햄버거 메뉴 표시 */
-    .menu-toggle {
-        display: flex;
-    }
+    /* menu-toggle은 이미 기본적으로 display: flex */
     
     .nav-menu {
-        position: fixed;
-        top: 0;
-        right: -100%;
-        width: 280px;
-        height: 100vh;
-        flex-direction: column;
-        background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-        padding: 5rem 0 2rem;
-        box-shadow: -4px 0 10px rgba(0, 0, 0, 0.2);
-        transition: right 0.3s ease;
-        overflow-y: auto;
-        z-index: 100;
+        width: 100%; /* 모바일에서는 전체 너비 사용 */
     }
     
-    .nav-menu.active {
-        right: 0;
-    }
-    
-    .nav-menu li {
-        width: 100%;
-    }
-    
-    .nav-menu a {
-        padding: 1rem 2rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        border-left: 4px solid transparent;
-    }
-    
-    .nav-menu a::after {
-        display: none;
-    }
-    
-    .nav-menu a:hover {
-        background: rgba(255, 255, 255, 0.15);
-        border-left-color: white;
-    }
-    
-    .nav-menu a.active {
-        background: rgba(255, 255, 255, 0.25);
-        border-left-color: white;
-    }
+    /* li, a 태그 스타일은 상위에서 이미 정의됨 */
     
     main.container {
         padding: 1.5rem 1rem;
@@ -362,7 +315,7 @@ footer p {
     }
     
     .nav-menu {
-        width: 250px;
+        max-width: 280px; /* 작은 화면에서 메뉴 너비 조정 */
     }
     
     .nav-menu a {
