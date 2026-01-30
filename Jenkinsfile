@@ -279,6 +279,7 @@ pipeline {
                 """
                 sh "curl -H \"Content-Type: application/json\" -X POST -d '${discordFailureMessage}' ${DISCORD_WEBHOOK_URL}"
             }
+        } // Missing closing brace added here
         always {
             echo '=== 빌드 완료 ==='
             cleanWs()
