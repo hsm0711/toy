@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout}">
+<head>
+    <title>AI vs AI 토론 배틀</title>
+    <th:block layout:fragment="extra-css">
+        <link rel="stylesheet" th:href="@{/css/tool-page.css}">
+        <link rel="stylesheet" th:href="@{/css/components.css}">
+        <style>
+            .debate-container {
+                display: flex;
+                flex-direction: column;
+                gap: 1.5rem;
+                margin-top: 1rem;
+            }
+            .debate-input-section {
+                display: flex;
+                gap: 1rem;
+                align-items: center;
+            }
+            textarea.form-control {
+                flex-grow: 1;
+                resize: vertical;
+                font-size: 0.95rem;
+                min-height: 80px;
+                max-height: 200px;
+            }
+            .debate-log {
+                background-color: #f8f9fa;
+                border: 1px solid #e2e8f0;
+                border-radius: 8px;
+                padding: 1rem;
+                min-height: 300px;
+                max-height: 600px;
+                overflow-y: auto;
+                font-size: 0.9rem;
+                line-height: 1.6;
+            }
+            .debate-message {
+                margin-bottom: 0.8rem;
+                padding: 0.6rem 1rem;
+                border-radius: 6px;
+            }
+            .debate-message.ai1 {
+                background-color: #e6f7ff; /* Light blue */
+                text-align: left;
+            }
+            .debate-message.ai2 {
+                background-color: #fff0f6; /* Light pink */
+                text-align: right;
+            }
+            .debate-message strong {
+                display: block;
+                margin-bottom: 0.3rem;
+                font-size: 1rem;
+            }
+            .streaming-indicator {
+                display: none;
+                align-items: center;
+                gap: 0.5rem;
+                color: #667eea;
+                font-weight: 500;
+                margin-top: 1rem;
+            }
+            .streaming-indicator.show {
+                display: flex;
+            }
+            .streaming-dot {
+                width: 8px;
+                height: 8px;
+                background: #667eea;
+                border-radius: 50%;
+                animation: pulse 1.5s infinite;
+            }
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.3; }
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="tool-container">
+        <div class="page-header">
+            <h2>🤖 AI vs AI 토론 배틀</h2>
+            <p class="description">두 AI 모델이 특정 주제에 대해 토론하는 과정을 지켜봅니다.</p>
+        </div>
+
+        <div class="tool-section card">
+            <div class="debate-container">
+                <div class="debate-input-section">
+                    <textarea id="debateTopic" class="form-control" placeholder="토론 주제를 입력하세요 (예: 피자에 파인애플은 유해한가?)..."></textarea>
+                    <button class="btn btn-primary" onclick="startDebate()" id="startDebateBtn">
+                        🔥 토론 시작
+                    </button>
+                </div>
+                
+                <div class="streaming-indicator" id="streamingIndicator">
+                    <div class="streaming-dot"></div>
+                    <span>AI들이 열띤 토론 중입니다...</span>
+                </div>
+
+                <div id="debateLog" class="debate-log">
+                    <!-- Debate messages will be inserted here -->
+                    <p>토론을 시작하려면 주제를 입력하고 '토론 시작' 버튼을 눌러주세요.</p>
+                </div>
+                
+                <div id="errorMessage" class="error-message"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block layout:fragment="extra-js">
+    <script th:src="@{/js/common-utils.js}"></script>
+    <script>
+        async function startDebate() {
+            const topic = document.getElementById('debateTopic').value.trim();
+            if (!topic) {
+                UiUtils.showError('토론 주제를 입력해주세요.');
+                return;
+            }
+
+            const startDebateBtn = document.getElementById('startDebateBtn');
+            const streamingIndicator = document.getElementById('streamingIndicator');
+            const debateLog = document.getElementById('debateLog');
+
+            debateLog.innerHTML = ''; // Clear previous debate
+            UiUtils.hideError();
+            startDebateBtn.disabled = true;
+            startDebateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 토론 준비 중...';
+            streamingIndicator.classList.add('show');
+
+            try {
+                // For now, this will call the placeholder in AiDebateController.java
+                const response = await fetch('/ai-debate/api/start-debate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topic }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    debateLog.innerHTML = ''; // Clear initial message
+                    data.result.forEach(turn => {
+                        const isAI1 = turn.speaker === "AI 1";
+                        addDebateMessage(turn.speaker, turn.message, isAI1);
+                    });
+                    UiUtils.showSuccess('AI 토론이 완료되었습니다.');
+                } else {
+                    UiUtils.showError(data.message || '토론 시작 중 오류가 발생했습니다.');
+                }
+
+            } catch (error) {
+                console.error('API 오류:', error);
+                UiUtils.showError('네트워크 오류 또는 서버 문제 발생');
+            } finally {
+                startDebateBtn.disabled = false;
+                startDebateBtn.innerHTML = '🔥 토론 시작';
+                streamingIndicator.classList.remove('show');
+            }
+        }
+        
+        function addDebateMessage(sender, message, isAI1) {
+            const debateLog = document.getElementById('debateLog');
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('debate-message');
+            messageDiv.classList.add(isAI1 ? 'ai1' : 'ai2');
+            messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            debateLog.appendChild(messageDiv);
+            debateLog.scrollTop = debateLog.scrollHeight; // Scroll to bottom
+        }
+    </script>
+</th:block>
+</body>
+</html>
