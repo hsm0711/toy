@@ -20,6 +20,7 @@ import java.util.Map;
 public class MenuManagementController {
     
     private final MenuService menuService;
+    private final OpenRouterApiService openRouterApiService;
     
     /**
      * 메뉴 관리 페이지 (숨겨진 URL)
@@ -31,6 +32,22 @@ public class MenuManagementController {
         model.addAttribute("menus", List.of());
         model.addAttribute("currentPage", "menu-management");
         return "menu-management";
+    }
+
+    /**
+     * API: AI 아이콘 추천
+     */
+    @PostMapping("/api/suggest-icon")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> suggestIcon(@RequestBody Map<String, String> request) {
+        String menuName = request.get("menuName");
+        if (menuName == null || menuName.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "message", "메뉴명이 필요합니다."));
+        }
+        
+        log.info("AI 아이콘 추천 API 호출: menuName={}", menuName);
+        
+        return ResponseEntity.ok(openRouterApiService.suggestIcons(menuName));
     }
     
     /**

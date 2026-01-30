@@ -51,7 +51,7 @@ public class OpenRouterApiService {
                 typePrompt, topic, tonePrompt, lengthPrompt
             );
             
-            return callOpenRouterModel(MODEL_LLAMA_3_2_3B, prompt, 1000, 0.7);
+            return callOpenRouterModel(MODEL_LLAMA_3_2_3B, prompt, 1000, 0.7, null);
             
         } catch (Exception e) {
             log.error("글쓰기 생성 오류", e);
@@ -80,7 +80,7 @@ public class OpenRouterApiService {
                 levelPrompt, language, code
             );
             
-            return callOpenRouterModel(MODEL_QWEN_2_5_7B, prompt, 1500, 0.3);
+            return callOpenRouterModel(MODEL_QWEN_2_5_7B, prompt, 1500, 0.3, null);
             
         } catch (Exception e) {
             log.error("코드 설명 오류", e);
@@ -109,7 +109,7 @@ public class OpenRouterApiService {
                 genrePrompt, lengthPrompt, prompt
             );
             
-            return callOpenRouterModel(MODEL_HERMES_405B, fullPrompt, 2000, 0.8);
+            return callOpenRouterModel(MODEL_HERMES_405B, fullPrompt, 2000, 0.8, null);
             
         } catch (Exception e) {
             log.error("스토리 생성 오류", e);
@@ -135,7 +135,7 @@ public class OpenRouterApiService {
                 typePrompt, topic, levelPrompt
             );
             
-            return callOpenRouterModel(MODEL_LLAMA_3_2_3B, prompt, 1200, 0.5);
+            return callOpenRouterModel(MODEL_LLAMA_3_2_3B, prompt, 1200, 0.5, null);
             
         } catch (Exception e) {
             log.error("학습 도우미 오류", e);
@@ -159,11 +159,46 @@ public class OpenRouterApiService {
                 getLanguageName(sourceLang), getLanguageName(targetLang), text
             );
             
-            return callOpenRouterModel(MODEL_QWEN_2_5_7B, prompt, 1000, 0.3);
+            return callOpenRouterModel(MODEL_QWEN_2_5_7B, prompt, 1000, 0.3, null);
             
         } catch (Exception e) {
             log.error("번역 오류", e);
             return createErrorResponse("번역 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 아이콘 추천 (Qwen 2.5 7B)
+     */
+    public Map<String, Object> suggestIcons(String menuName) {
+        if (!isApiKeyConfigured()) {
+            return createErrorResponse("OpenRouter API 키가 설정되지 않았습니다.");
+        }
+        
+        try {
+            String prompt = String.format(
+                "메뉴명 \"%s\"에 가장 적합한 이모지 아이콘 10개를 추천해주세요.\n\n" +
+                "요구사항:\n" +
+                "1. 메뉴명의 의미와 기능을 정확히 파악하여 추천\n" +
+                "2. 직관적이고 시각적으로 명확한 이모지 선택\n" +
+                "3. 다양한 스타일 제공 (기본, 창의적, 전문적)\n" +
+                "4. 각 이모지에 대한 간단한 설명 포함\n\n" +
+                "응답 형식 (JSON만 반환, 다른 텍스트 없이):\n" +
+                "{\n" +
+                "  \"icons\": [\n" +
+                "    {\"emoji\": \"🔧\", \"description\": \"도구/설정\"},\n" +
+                "    {\"emoji\": \"⚙️\", \"description\": \"설정\"}\n" +
+                "  ]\n" +
+                "}\n\n" +
+                "중요: JSON 형식만 반환하고, 마크다운 코드 블록이나 다른 텍스트를 포함하지 마세요.",
+                menuName
+            );
+            
+            return callOpenRouterModel(MODEL_QWEN_2_5_7B, prompt, 500, 0.5, "json_object");
+            
+        } catch (Exception e) {
+            log.error("아이콘 추천 오류", e);
+            return createErrorResponse("아이콘 추천 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
     
@@ -194,7 +229,7 @@ public class OpenRouterApiService {
                 instruction, text
             );
             
-            return callOpenRouterModel(MODEL_LLAMA_3_1_8B, prompt, 500, 0.7);
+            return callOpenRouterModel(MODEL_LLAMA_3_1_8B, prompt, 500, 0.7, null);
             
         } catch (Exception e) {
             log.error("톤 변환 오류", e);
@@ -205,16 +240,17 @@ public class OpenRouterApiService {
     /**
      * OpenRouter API 호출 (공통)
      */
-    private Map<String, Object> callOpenRouterModel(String model, String prompt, int maxTokens, double temperature) {
+    private Map<String, Object> callOpenRouterModel(String model, String prompt, int maxTokens, double temperature, String responseFormat) {
         try {
-            Map<String, Object> requestBody = Map.of(
-                "model", model,
-                "messages", List.of(
-                    Map.of("role", "user", "content", prompt)
-                ),
-                "max_tokens", maxTokens,
-                "temperature", temperature
-            );
+            Map<String, Object> requestBody = new HashMap<>();
+            requestBody.put("model", model);
+            requestBody.put("messages", List.of(Map.of("role", "user", "content", prompt)));
+            requestBody.put("max_tokens", maxTokens);
+            requestBody.put("temperature", temperature);
+            
+            if (responseFormat != null) {
+                requestBody.put("response_format", Map.of("type", responseFormat));
+            }
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);

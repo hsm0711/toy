@@ -598,62 +598,20 @@
                 refreshBtn.disabled = true;
                 
                 try {
-                    // Claude API 호출
-                    const response = await fetch("https://api.anthropic.com/v1/messages", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                        },
-                        body: JSON.stringify({
-                            model: "claude-sonnet-4-20250514",
-                            max_tokens: 1000,
-                            messages: [
-                                {
-                                    role: "user",
-                                    content: `메뉴명 "${menuName}"에 가장 적합한 이모지 아이콘 10개를 추천해주세요.
-
-요구사항:
-1. 메뉴명의 의미와 기능을 정확히 파악하여 추천
-2. 직관적이고 시각적으로 명확한 이모지 선택
-3. 다양한 스타일 제공 (기본, 창의적, 전문적)
-4. 각 이모지에 대한 간단한 설명 포함
-
-응답 형식 (JSON만 반환, 다른 텍스트 없이):
-{
-  "icons": [
-    {"emoji": "🔧", "description": "도구/설정"},
-    {"emoji": "⚙️", "description": "설정"}
-  ]
-}
-
-중요: JSON 형식만 반환하고, 마크다운 코드 블록이나 다른 텍스트를 포함하지 마세요.`
-                                }
-                            ]
-                        })
+                    const response = await fetch('/mngt/menu/api/suggest-icon', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ menuName: menuName })
                     });
 
                     const data = await response.json();
                     
-                    if (!data.content || !data.content[0] || !data.content[0].text) {
-                        throw new Error('Invalid API response');
+                    if (!response.ok || !data.success) {
+                        throw new Error(data.message || 'AI 추천 API 호출 실패');
                     }
                     
-                    // JSON 파싱
-                    let iconData;
-                    const responseText = data.content[0].text.trim();
-                    
-                    // JSON 블록 제거
-                    const cleanedText = responseText
-                        .replace(/```json\n?/g, '')
-                        .replace(/```\n?/g, '')
-                        .trim();
-                    
-                    try {
-                        iconData = JSON.parse(cleanedText);
-                    } catch (e) {
-                        console.error('JSON Parse Error:', e);
-                        throw new Error('Failed to parse icon data');
-                    }
+                    // result는 JSON 문자열이므로 다시 파싱
+                    const iconData = JSON.parse(data.result);
                     
                     if (!iconData.icons || !Array.isArray(iconData.icons)) {
                         throw new Error('Invalid icon data format');
@@ -661,15 +619,15 @@
                     
                     // 아이콘 표시
                     displayIconSuggestions(iconData.icons);
-                    refreshBtn.style.display = 'inline-flex';
-                    refreshBtn.disabled = false;
                     
                 } catch (error) {
                     console.error('AI 추천 실패:', error);
+                    showToast(error.message, 'error');
                     
                     // 폴백: 기본 아이콘 추천
                     const fallbackIcons = getFallbackIcons(menuName);
                     displayIconSuggestions(fallbackIcons);
+                } finally {
                     refreshBtn.style.display = 'inline-flex';
                     refreshBtn.disabled = false;
                 }
@@ -842,12 +800,28 @@
                 }, 3000);
             }
 
-            window.onclick = function(event) {
-                const modal = document.getElementById('menuModal');
+            const modal = document.getElementById('menuModal');
+            let isMouseDownOnModal = false;
+
+            modal.addEventListener('mousedown', function(event) {
                 if (event.target === modal) {
+                    isMouseDownOnModal = true;
+                }
+            });
+
+            modal.addEventListener('mouseup', function(event) {
+                if (event.target === modal && isMouseDownOnModal) {
                     closeModal();
                 }
-            }
+                isMouseDownOnModal = false;
+            });
+            
+            // Prevent window.onclick from being used
+            // window.onclick = function(event) {
+            //     if (event.target === modal) {
+            //         closeModal();
+            //     }
+            // }
         </script>
     </th:block>
 </body>
