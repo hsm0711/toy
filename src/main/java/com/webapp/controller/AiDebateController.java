@@ -9,7 +9,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
+import java.util.Comparator;
 
 /**
  * AI vs AI 토론 배틀 컨트롤러
@@ -93,7 +96,7 @@ public class AiDebateController {
                 }
             }
 
-            return ResponseUtils.success(debateLogList);
+            return ResponseUtils.success("AI 토론이 완료되었습니다.", "debateLog", debateLogList);
 
         } catch (Exception e) {
             log.error("AI 토론 시작 오류", e);

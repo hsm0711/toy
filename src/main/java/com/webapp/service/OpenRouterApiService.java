@@ -240,7 +240,7 @@ public class OpenRouterApiService {
     /**
      * OpenRouter API 호출 (공통)
      */
-    private Map<String, Object> callOpenRouterModel(String model, String prompt, int maxTokens, double temperature, String responseFormat) {
+    public Map<String, Object> callOpenRouterModel(String model, String prompt, int maxTokens, double temperature, String responseFormat) {
         try {
             Map<String, Object> requestBody = new HashMap<>();
             requestBody.put("model", model);
@@ -292,7 +292,7 @@ public class OpenRouterApiService {
         }
     }
     
-    // ========== Helper Methods ==========
+    // ========== Helper Methods ========== 
     
     private String getWritingTypePrompt(String type) {
         return switch (type) {
@@ -415,4 +415,6 @@ public class OpenRouterApiService {
     private Map<String, Object> createErrorResponse(String message) {
         return Map.of("success", false, "message", message);
     }
+
+    // This comment is added to force recompilation.
 }
