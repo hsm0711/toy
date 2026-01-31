@@ -41,6 +41,7 @@
                 margin-bottom: 0.8rem;
                 padding: 0.6rem 1rem;
                 border-radius: 6px;
+                word-break: break-word; /* 긴 단어/문자열이 레이아웃을 깨지 않도록 */
             }
             .debate-message.ai1 {
                 background-color: #e6f7ff; /* Light blue */
@@ -77,6 +78,11 @@
                 0%, 100% { opacity: 1; }
                 50% { opacity: 0.3; }
             }
+            .error-message {
+                color: #dc3545;
+                font-weight: bold;
+                margin-top: 0.5rem;
+            }
         </style>
     </th:block>
 </head>
@@ -91,7 +97,7 @@
         <div class="tool-section card">
             <div class="debate-container">
                 <div class="debate-input-section">
-                    <textarea id="debateTopic" class="form-control" placeholder="토론 주제를 입력하세요 (예: 피자에 파인애플은 유해한가?)..."></textarea>
+                    <textarea id="debateTopic" class="form-control" placeholder="AI들의 키보드 워리어를 깨울 주제를 입력하세요 (예: 붕어빵에는 붕어가 있다?)..."></textarea>
                     <div style="width: 120px;">
                         <label for="debateTurns" class="form-label visually-hidden">토론 턴 수</label>
                         <select id="debateTurns" class="form-select">
@@ -102,18 +108,18 @@
                         </select>
                     </div>
                     <button class="btn btn-primary" onclick="startDebate()" id="startDebateBtn">
-                        🔥 토론 시작
+                        ⚔️ AI 대전 시작!
                     </button>
                 </div>
                 
                 <div class="streaming-indicator" id="streamingIndicator">
                     <div class="streaming-dot"></div>
-                    <span>AI들이 열띤 토론 중입니다...</span>
+                    <span>AI들의 논리 회로 풀가동 중... 지금, 역사적인(?) 논쟁이 펼쳐집니다!</span>
                 </div>
 
                 <div id="debateLog" class="debate-log">
                     <!-- Debate messages will be inserted here -->
-                    <p>토론을 시작하려면 주제를 입력하고 '토론 시작' 버튼을 눌러주세요.</p>
+                    <p>AI들의 불꽃 튀는 논쟁을 보시려면, 주제를 입력하고 'AI 대전 시작!' 버튼을 눌러주세요.</p>
                 </div>
                 
                 <div id="errorMessage" class="error-message"></div>
@@ -124,10 +130,65 @@
 
 <th:block layout:fragment="extra-js">
     <script th:src="@{/js/common-utils.js}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.6.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <script>
+        let stompClient = null;
+        let currentSessionId = null;
+
+        function connect(sessionId) {
+            const socket = new SockJS('/ws'); // WebSocketConfig에서 설정한 엔드포인트
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                currentSessionId = sessionId;
+                // 세션 ID에 해당하는 토픽을 구독
+                stompClient.subscribe('/topic/ai-debate-updates/' + sessionId, function (message) {
+                    const debateUpdate = JSON.parse(message.body);
+                    console.log('Received: ', debateUpdate);
+                    addDebateMessage(debateUpdate.speaker, debateUpdate.message, debateUpdate.speaker === "AI 1");
+
+                    if (debateUpdate.isCompleted) {
+                        disconnect();
+                        UiUtils.showSuccess('드디어 결론! AI들의 싸움, 인간만 구경...');
+                        document.getElementById('startDebateBtn').disabled = false;
+                        document.getElementById('startDebateBtn').innerHTML = '⚔️ AI 대전 시작!';
+                        document.getElementById('streamingIndicator').classList.remove('show');
+                    }
+                });
+                console.log('Subscribed to /topic/ai-debate-updates/' + sessionId);
+
+                // 연결 후 토론 시작 메시지 전송
+                const topic = document.getElementById('debateTopic').value.trim();
+                const turns = document.getElementById('debateTurns').value;
+                stompClient.send("/app/ai-debate/start", {}, JSON.stringify({ 'topic': topic, 'turns': turns, 'sessionId': sessionId }));
+                console.log('Sent start debate message via STOMP.');
+
+            }, function (error) {
+                console.error('STOMP Error:', error);
+                UiUtils.showError('WebSocket 연결에 실패했습니다.');
+                document.getElementById('startDebateBtn').disabled = false;
+                document.getElementById('startDebateBtn').innerHTML = '⚔️ AI 대전 시작!';
+                document.getElementById('streamingIndicator').classList.remove('show');
+            });
+        }
+
+        function disconnect() {
+            if (stompClient !== null) {
+                stompClient.disconnect();
+                stompClient = null;
+                console.log("Disconnected");
+            }
+        }
+
         async function startDebate() {
+            if (stompClient && stompClient.connected) {
+                UiUtils.showError('이미 토론이 진행 중입니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+
             const topic = document.getElementById('debateTopic').value.trim();
-            const turns = document.getElementById('debateTurns').value; // Get the turns value
+            const turns = document.getElementById('debateTurns').value;
 
             if (!topic) {
                 UiUtils.showError('토론 주제를 입력해주세요.');
@@ -138,38 +199,36 @@
             const streamingIndicator = document.getElementById('streamingIndicator');
             const debateLog = document.getElementById('debateLog');
 
-            debateLog.innerHTML = ''; // Clear previous debate
+            debateLog.innerHTML = '<p>AI들의 심장을 깨우는 중...</p>'; // Clear previous debate and show starting message
             UiUtils.hideError();
             startDebateBtn.disabled = true;
-            startDebateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 토론 준비 중...';
+            startDebateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> AI들, 데이터 빨아들이는 중...';
             streamingIndicator.classList.add('show');
 
             try {
+                // HTTP POST 요청을 보내 세션 ID를 받아옴
                 const response = await fetch('/ai-debate/api/start-debate', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic: topic, turns: turns }), // Include turns in the request body
+                    body: JSON.stringify({ topic: topic, turns: turns }),
                 });
 
                 const data = await response.json();
 
-                if (response.ok && data.success) {
-                    debateLog.innerHTML = ''; // Clear initial message
-                    data.result.forEach(turn => {
-                        const isAI1 = turn.speaker === "AI 1";
-                        addDebateMessage(turn.speaker, turn.message, isAI1);
-                    });
-                    UiUtils.showSuccess('AI 토론이 완료되었습니다.');
+                if (response.ok && data.success && data.sessionId) {
+                    debateLog.innerHTML = ''; // Clear initial message once session ID is received
+                    connect(data.sessionId); // 세션 ID를 사용하여 WebSocket 연결 및 구독
                 } else {
                     UiUtils.showError(data.message || '토론 시작 중 오류가 발생했습니다.');
+                    startDebateBtn.disabled = false;
+                    startDebateBtn.innerHTML = '⚔️ AI 대전 시작!';
+                    streamingIndicator.classList.remove('show');
                 }
-
             } catch (error) {
                 console.error('API 오류:', error);
                 UiUtils.showError('네트워크 오류 또는 서버 문제 발생');
-            } finally {
                 startDebateBtn.disabled = false;
-                startDebateBtn.innerHTML = '🔥 토론 시작';
+                startDebateBtn.innerHTML = '⚔️ AI 대전 시작!';
                 streamingIndicator.classList.remove('show');
             }
         }
@@ -178,11 +237,29 @@
             const debateLog = document.getElementById('debateLog');
             const messageDiv = document.createElement('div');
             messageDiv.classList.add('debate-message');
-            messageDiv.classList.add(isAI1 ? 'ai1' : 'ai2');
-            messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            // 'System' 메시지는 AI1/AI2 스타일을 적용하지 않음
+            if (sender === "AI 1") {
+                messageDiv.classList.add('ai1');
+            } else if (sender === "AI 2") {
+                messageDiv.classList.add('ai2');
+            }
+            
+            // System 메시지의 경우 굵게 표시하지 않고 중앙 정렬
+            if (sender === "System") {
+                messageDiv.style.textAlign = 'center';
+                messageDiv.innerHTML = `<em>${message}</em>`;
+            } else {
+                messageDiv.innerHTML = `<strong>${sender}:</strong> ${message}`;
+            }
+            
             debateLog.appendChild(messageDiv);
             debateLog.scrollTop = debateLog.scrollHeight; // Scroll to bottom
         }
+
+        // 페이지를 떠날 때 WebSocket 연결을 끊습니다.
+        window.onbeforeunload = function() {
+            disconnect();
+        };
     </script>
 </th:block>
 </body>
