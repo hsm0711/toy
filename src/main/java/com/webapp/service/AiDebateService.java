@@ -121,7 +121,7 @@ public class AiDebateService {
         log.debug("Debate update sent to sessionId {}: {} - {}", sessionId, speaker, message);
     }
 
-    private void sendErrorToClient(String sessionId, String errorMessage) {
+    public void sendErrorToClient(String sessionId, String errorMessage) {
         Map<String, Object> payload = Map.of(
             "sessionId", sessionId,
             "speaker", "Error",
