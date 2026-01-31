@@ -15,184 +15,152 @@
 </head>
 <body>
     <!-- 모바일 메뉴 오버레이 -->
-    <div class="overlay" id="menuOverlay"></div>
+    <div class="menu-overlay" id="menuOverlay"></div>
 
-    <!-- 네비게이션 바 (공통) -->
-    <nav class="navbar" th:fragment="navbar">
-        <div class="container">
-            <!-- 로고 영역 -->
-            <div class="logo">
-                <a th:href="@{/}" aria-label="홈으로 가기">Playground</a>
+    <!-- 네비게이션 바 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <!-- 로고 -->
+            <div class="nav-logo">
+                <a th:href="@{/}" aria-label="홈으로 가기">🎮 Playground</a>
             </div>
             
-            <!-- 햄버거 메뉴 버튼 (모바일) -->
-            <button class="menu-toggle" id="menuToggle" aria-label="메뉴 열기" aria-expanded="false">
-                <span></span>
-                <span></span>
-                <span></span>
+            <!-- 햄버거 버튼 -->
+            <button class="hamburger" id="hamburgerBtn" aria-label="메뉴 열기" aria-expanded="false">
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
+                <span class="hamburger-line"></span>
             </button>
             
-            <!-- 메뉴 리스트 (개선) -->
-            <ul class="nav-menu" id="navMenu" role="navigation">
-            <ul class="nav-menu" id="navMenu" role="navigation">
-                <th:block th:each="menu, iterStat : ${menus}">
-                    <li>
-                        <a th:href="@{${menu.path}}"
-                           th:text="${menu.name}"
-                           th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''"
-                           th:attr="aria-current=${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'page' : null">
-                        </a>
-                    </li>
-                </th:block>
-            </ul>
+            <!-- 메뉴 -->
+            <div class="nav-menu" id="navMenu">
+                <ul class="nav-list">
+                    <th:block th:if="${menus != null and !menus.isEmpty()}">
+                        <li th:each="menu : ${menus}" class="nav-item">
+                            <a th:href="@{${menu.path}}" 
+                               class="nav-link"
+                               th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''"
+                               th:attr="aria-current=${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'page' : null">
+                                <span th:if="${menu.icon != null and menu.icon != ''}" th:text="${menu.icon}"></span>
+                                <span th:text="${menu.name}"></span>
+                            </a>
+                        </li>
+                    </th:block>
+                </ul>
+            </div>
         </div>
     </nav>
 
-    <!-- 메인 컨텐츠 영역 -->
-    <main class="container" role="main">
+    <!-- 메인 컨텐츠 -->
+    <main class="main-content" role="main">
         <div layout:fragment="content">
-            <!-- 페이지별 컨텐츠가 여기에 삽입됩니다 -->
+            <!-- 페이지별 컨텐츠 -->
         </div>
     </main>
 
-    <!-- 푸터 (공통) -->
-    <footer th:fragment="footer" role="contentinfo">
-        <div class="container">
+    <!-- 푸터 -->
+    <footer class="footer" role="contentinfo">
+        <div class="footer-container">
             <p>&copy; <span th:text="${#dates.year(#dates.createNow())}">2024</span> Playground. All rights reserved.</p>
         </div>
     </footer>
 
-    <!-- 공통 JavaScript -->
+    <!-- 메뉴 토글 스크립트 -->
     <script>
-        // 모바일 메뉴 토글 기능
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuToggle = document.getElementById('menuToggle');
+        (function() {
+            'use strict';
+            
+            const hamburgerBtn = document.getElementById('hamburgerBtn');
             const navMenu = document.getElementById('navMenu');
             const menuOverlay = document.getElementById('menuOverlay');
             const body = document.body;
             
-            if (menuToggle && navMenu && menuOverlay) {
-                // 메뉴 토글 버튼 클릭
-                menuToggle.addEventListener('click', function(e) {
-                    e.stopPropagation();
-                    toggleMenu();
-                });
-                
-                // 오버레이 클릭 시 메뉴 닫기
-                menuOverlay.addEventListener('click', function() {
-                    closeMenu();
-                });
-                
-                // 메뉴 링크 클릭 시 메뉴 닫기 (모바일)
-                const menuLinks = navMenu.querySelectorAll('a');
-                menuLinks.forEach(link => {
-                    link.addEventListener('click', function() {
-                        closeMenu();
-                    });
-                });
-                
-                // ESC 키로 메뉴 닫기
-                document.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape' && navMenu.classList.contains('active')) {
-                        closeMenu();
-                    }
-                });
-                
-                // 윈도우 리사이즈 시 메뉴 상태 유지 (강제 닫기 로직 제거)
-                let resizeTimer;
-                window.addEventListener('resize', function() {
-                    clearTimeout(resizeTimer);
-                    resizeTimer = setTimeout(function() {
-                        // 메뉴 상태는 햄버거 버튼에 의해 제어되므로, 여기서 강제로 닫지 않음.
-                        // 이전에 있었던 if (window.innerWidth > 768) { closeMenu(); } 로직 제거.
-                    }, 250);
-                });
+            if (!hamburgerBtn || !navMenu || !menuOverlay) {
+                console.warn('Menu elements not found');
+                return;
             }
             
+            // 메뉴 열기
+            function openMenu() {
+                hamburgerBtn.classList.add('active');
+                navMenu.classList.add('active');
+                menuOverlay.classList.add('active');
+                body.style.overflow = 'hidden';
+                hamburgerBtn.setAttribute('aria-expanded', 'true');
+                hamburgerBtn.setAttribute('aria-label', '메뉴 닫기');
+            }
+            
+            // 메뉴 닫기
+            function closeMenu() {
+                hamburgerBtn.classList.remove('active');
+                navMenu.classList.remove('active');
+                menuOverlay.classList.remove('active');
+                body.style.overflow = '';
+                hamburgerBtn.setAttribute('aria-expanded', 'false');
+                hamburgerBtn.setAttribute('aria-label', '메뉴 열기');
+            }
+            
+            // 메뉴 토글
             function toggleMenu() {
-                const isActive = menuToggle.classList.contains('active');
-                
-                if (isActive) {
+                if (hamburgerBtn.classList.contains('active')) {
                     closeMenu();
                 } else {
                     openMenu();
                 }
             }
             
-            function openMenu() {
-                menuToggle.classList.add('active');
-                navMenu.classList.add('active');
-                menuOverlay.classList.add('active');
-                body.style.overflow = 'hidden';
-                menuToggle.setAttribute('aria-expanded', 'true');
-                menuToggle.setAttribute('aria-label', '메뉴 닫기');
-            }
+            // 햄버거 버튼 클릭
+            hamburgerBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleMenu();
+            });
             
-            function closeMenu() {
-                menuToggle.classList.remove('active');
-                navMenu.classList.remove('active');
-                menuOverlay.classList.remove('active');
-                body.style.overflow = '';
-                menuToggle.setAttribute('aria-expanded', 'false');
-                menuToggle.setAttribute('aria-label', '메뉴 열기');
-            }
-        });
-        
-        // 스크롤 시 네비게이션 바 그림자 효과
-        let lastScrollTop = 0;
-        window.addEventListener('scroll', function() {
-            const navbar = document.querySelector('.navbar');
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            // 오버레이 클릭시 닫기
+            menuOverlay.addEventListener('click', function() {
+                closeMenu();
+            });
             
-            if (navbar) {
-                if (scrollTop > 10) {
-                    navbar.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
-                } else {
-                    navbar.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1)';
-                }
-            }
-            
-            lastScrollTop = scrollTop;
-        }, { passive: true });
-        
-        // 메뉴 항목에 키보드 네비게이션 지원
-        document.addEventListener('DOMContentLoaded', function() {
-            const menuItems = document.querySelectorAll('.nav-menu a');
-            
-            menuItems.forEach((item, index) => {
-                item.addEventListener('keydown', function(e) {
-                    let nextItem;
-                    
-                    switch(e.key) {
-                        case 'ArrowRight':
-                        case 'ArrowDown':
-                            e.preventDefault();
-                            nextItem = menuItems[index + 1] || menuItems[0];
-                            nextItem.focus();
-                            break;
-                        case 'ArrowLeft':
-                        case 'ArrowUp':
-                            e.preventDefault();
-                            nextItem = menuItems[index - 1] || menuItems[menuItems.length - 1];
-                            nextItem.focus();
-                            break;
-                        case 'Home':
-                            e.preventDefault();
-                            menuItems[0].focus();
-                            break;
-                        case 'End':
-                            e.preventDefault();
-                            menuItems[menuItems.length - 1].focus();
-                            break;
-                    }
+            // 메뉴 링크 클릭시 닫기
+            const menuLinks = navMenu.querySelectorAll('.nav-link');
+            menuLinks.forEach(function(link) {
+                link.addEventListener('click', function() {
+                    closeMenu();
                 });
             });
-        });
-    </script>
-    
-    <th:block layout:fragment="extra-js"></th:block>
-</body>
-</html>
+            
+            // ESC 키로 닫기
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && navMenu.classList.contains('active')) {
+                    closeMenu();
+                }
+            });
+            
+            // 윈도우 리사이즈시 데스크탑으로 전환되면 메뉴 닫기
+            let resizeTimer;
+            window.addEventListener('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(function() {
+                    if (window.innerWidth > 768 && navMenu.classList.contains('active')) {
+                        closeMenu();
+                    }
+                }, 100);
+            });
+        })();
+        
+        // 스크롤시 navbar 그림자 효과
+        (function() {
+            const navbar = document.querySelector('.navbar');
+            if (!navbar) return;
+            
+            window.addEventListener('scroll', function() {
+                if (window.pageYOffset > 10) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+            }, { passive: true });
+        })();
     </script>
     
     <th:block layout:fragment="extra-js"></th:block>
