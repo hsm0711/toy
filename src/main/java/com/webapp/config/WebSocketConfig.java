@@ -20,6 +20,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // WebSocket 연결을 위한 STOMP 엔드포인트 "/ws" 등록
         // SockJS를 사용하여 WebSocket을 지원하지 않는 브라우저를 위한 Fallback 옵션 활성화
-        registry.addEndpoint("/ws").setAllowedOrigins("*").withSockJS();
+        registry.addEndpoint("/ws").setAllowedOrigins("https://toy.playcloud8.com").withSockJS();
     }
 }
