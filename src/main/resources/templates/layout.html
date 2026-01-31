@@ -25,14 +25,7 @@
                 <a th:href="@{/}" aria-label="홈으로 가기">🎮 Playground</a>
             </div>
             
-            <!-- 햄버거 버튼 -->
-            <button class="hamburger" id="hamburgerBtn" aria-label="메뉴 열기" aria-expanded="false">
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-                <span class="hamburger-line"></span>
-            </button>
-            
-            <!-- 메뉴 -->
+            <!-- 메뉴 (PC에서 중앙 배치) -->
             <div class="nav-menu" id="navMenu">
                 <ul class="nav-list">
                     <th:block th:if="${menus != null and !menus.isEmpty()}">
@@ -41,12 +34,28 @@
                                class="nav-link"
                                th:classappend="${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'active' : ''"
                                th:attr="aria-current=${(menu.path == '/' && currentPage == 'home') || (menu.path.length() > 1 && currentPage == menu.path.substring(1))} ? 'page' : null">
-                                <span th:if="${menu.icon != null and menu.icon != ''}" th:text="${menu.icon}"></span>
+                                <span th:if="${menu.icon != null and menu.icon != ''}" th:text="${menu.icon}" class="nav-icon"></span>
                                 <span th:text="${menu.name}"></span>
                             </a>
                         </li>
                     </th:block>
                 </ul>
+            </div>
+            
+            <!-- 오른쪽 버튼들 -->
+            <div class="nav-actions">
+                <!-- 다크모드 토글 버튼 -->
+                <button class="theme-toggle" id="themeToggle" aria-label="테마 전환">
+                    <span class="theme-icon sun-icon">☀️</span>
+                    <span class="theme-icon moon-icon">🌙</span>
+                </button>
+                
+                <!-- 햄버거 버튼 (모바일) -->
+                <button class="hamburger" id="hamburgerBtn" aria-label="메뉴 열기" aria-expanded="false">
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                    <span class="hamburger-line"></span>
+                </button>
             </div>
         </div>
     </nav>
@@ -65,8 +74,61 @@
         </div>
     </footer>
 
-    <!-- 메뉴 토글 스크립트 -->
+    <!-- 테마 & 메뉴 스크립트 -->
     <script>
+        // 다크모드 관리
+        (function() {
+            'use strict';
+            
+            const themeToggle = document.getElementById('themeToggle');
+            const html = document.documentElement;
+            
+            // 저장된 테마 또는 시스템 설정 가져오기
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+            
+            // 초기 테마 적용
+            html.setAttribute('data-theme', initialTheme);
+            updateThemeIcon(initialTheme);
+            
+            // 테마 토글 버튼 클릭
+            if (themeToggle) {
+                themeToggle.addEventListener('click', function() {
+                    const currentTheme = html.getAttribute('data-theme');
+                    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                    
+                    html.setAttribute('data-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    updateThemeIcon(newTheme);
+                });
+            }
+            
+            // 테마 아이콘 업데이트
+            function updateThemeIcon(theme) {
+                const sunIcon = themeToggle.querySelector('.sun-icon');
+                const moonIcon = themeToggle.querySelector('.moon-icon');
+                
+                if (theme === 'dark') {
+                    sunIcon.style.display = 'block';
+                    moonIcon.style.display = 'none';
+                } else {
+                    sunIcon.style.display = 'none';
+                    moonIcon.style.display = 'block';
+                }
+            }
+            
+            // 시스템 테마 변경 감지
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function(e) {
+                if (!localStorage.getItem('theme')) {
+                    const newTheme = e.matches ? 'dark' : 'light';
+                    html.setAttribute('data-theme', newTheme);
+                    updateThemeIcon(newTheme);
+                }
+            });
+        })();
+        
+        // 모바일 메뉴 관리
         (function() {
             'use strict';
             
@@ -125,7 +187,9 @@
             const menuLinks = navMenu.querySelectorAll('.nav-link');
             menuLinks.forEach(function(link) {
                 link.addEventListener('click', function() {
-                    closeMenu();
+                    if (window.innerWidth <= 768) {
+                        closeMenu();
+                    }
                 });
             });
             
